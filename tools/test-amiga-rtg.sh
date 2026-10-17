@@ -24,4 +24,9 @@ podman run --rm -v $W/test-amiga:/opt/personalities/amiga:ro,Z -v $W/test-ahome:
     grep -a -i "uaegfx\|P96\|picasso\|rtg" ~/rtg.log | sort | uniq -c | head -30
     grep -aq "uaegfx.card .* init" ~/rtg.log || { tail -40 ~/rtg.log; echo "test-amiga-rtg: FAILED: no uaegfx card"; exit 1; }
     grep -aq "P96: " ~/rtg.log || { tail -40 ~/rtg.log; echo "test-amiga-rtg: FAILED: Picasso96 never started the card"; exit 1; }
-    echo "test-amiga-rtg: OK (Picasso96 on DH0, the card configured, rtg.library started uaegfx)"'
+    # turned off as Amiberry Save config does it (no gfxcard_size line), and
+    # DH1 taken out: the next start leaves both out
+    sed -i "/^gfxcard/d; /^hardfile2=.*DH1:/d" ~/personalities/a1200/a1200.uae
+    /opt/personalities/amiga/run/a1200 >/dev/null 2>&1 & sleep 5; kill $! 2>/dev/null; sleep 1
+    ! grep -aq "^gfxcard_size=\|^hardfile2=.*DH1:" ~/personalities/a1200/a1200.uae || { echo "test-amiga-rtg: FAILED: RTG or DH1 put back after being taken out"; exit 1; }
+    echo "test-amiga-rtg: OK (Picasso96 on DH0, the card configured, rtg.library started uaegfx; off stays off)"'
