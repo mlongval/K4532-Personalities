@@ -30,10 +30,17 @@ D=$HOME/personalities/$name; mkdir -p "$D"; cd "$D" || exit 1
 # K4510's), and the keyboard by symbol: a PC key types what is printed on it
 # (Doc, 2026-10-17; -keymap 1 laid them out by position until then; the PET
 # too since that evening).
-common="-sounddev alsa -keymap 0"
+# These defaults give way to what the machine's own section of VICE's
+# settings says (F12 -> Settings -> Save, or the K4532 hub's Settings form,
+# 2026-10-17): each is passed only when the section does not set it.
+RC=$HOME/.config/vice/sdl-vicerc
+case "$name" in c64) sec=C64SC ;; c128) sec=C128 ;; pet) sec=PET ;; *) sec=none ;; esac
+saved() { [ -f "$RC" ] && sed -n "/^\[$sec\]/,/^\[/p" "$RC" | grep -q "^$1="; }
+common="-sounddev alsa"
+saved KeymapIndex || common="$common -keymap 0"
 # The REU, 16 MB (VICE's largest; Doc asked for 64): PETSCII Robots' REU
 # edition and GEOS use it, and it is harmless to the rest.
-reu="-reu -reusize 16384"
+reu=; saved REU || reu="-reu"; saved REUsize || reu="$reu -reusize 16384"
 # The SD volume: drive 9 is a folder, ~/personalities/SD, shared by the C64
 # and the C128 -- VICE's filesystem device, which takes SD2IEC's CD commands
 # -- with Dir Browser on it (DB64, DB128; the sidebar's BROWSE runs it).

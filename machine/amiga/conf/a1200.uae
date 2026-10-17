@@ -1,5 +1,9 @@
 ; K4510 personality: Amiga 1200, Kickstart 3.1, 2 MB chip + 8 MB fast,
 ; Workbench 3.1 on DH0: (the directory ~/personalities/a1200/DH0).
+; RTG: a 68020 with all 32 address lines (the A1200's own 68EC020 has 24,
+; too few for a Zorro III board) and UAE's graphics card, uaegfx, 16 MB, with
+; Picasso96 on DH0 (the run script puts it there): Prefs/ScreenMode lists
+; its modes as uaegfx:...
 config_description=K4510 Amiga 1200
 quickstart=A1200,0
 use_gui=no
@@ -9,3 +13,7 @@ nr_floppies=1
 filesystem2=rw,DH0:Workbench:@HOME@/DH0,0
 hardfile2=rw,DH1:@HOME@/Work.hdf,32,1,2,512,-128,
 gfx_fullscreen_amiga=fullwindow
+cpu_type=68020
+cpu_24bit_addressing=false
+gfxcard_type=ZorroIII
+gfxcard_size=16

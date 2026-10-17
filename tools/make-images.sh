@@ -74,6 +74,28 @@ python3 "$HERE/tools/topaz.py" "$KS31" $A/topaz.bin
 # DH1:, Work, 20 MB (tools/make-amiga-hd.sh; into work/out/home, kept on the machine once there)
 "$HERE/tools/make-amiga-hd.sh" >/dev/null
 cp "$HERE/machine/amiga/list" $A/list
+# RTG: Picasso96 2.0 as its installer would put it on SYS: for uaegfx (Amiberry's
+# graphics card), in $A/p96 (tools/get-picasso96.sh; only in this image, never
+# in the repository); the A1200's run script copies it onto DH0 once
+rm -rf $A/p96
+if [ -f $W/picasso96/Picasso96.lha ]; then
+    t=$(mktemp -d); (cd $t && lha xq $W/picasso96/Picasso96.lha); P=$t/Picasso96Install; Q=$A/p96
+    mkdir -p $Q/Libs/Picasso96 $Q/Devs/Monitors $Q/Prefs/Env-Archive/Picasso96
+    cp $P/Libs/Picasso96API.library $Q/Libs/
+    for f in rtg.library fastlayers.library emulation.library uaegfx.card; do cp $P/Libs/Picasso96/$f $Q/Libs/Picasso96/; done
+    cp $P/Devs/Monitors/Picasso96 $Q/Devs/Monitors/uaegfx
+    python3 "$HERE/tools/amiga-icon.py" $P/Devs/Monitors/Picasso96.info $Q/Devs/Monitors/uaegfx.info \
+        "(DisplayChain=Yes)" "IgnoreMask=Yes" "(SoftSprite=Yes)" "(BigSprite=Yes)" "(BorderBlank=Yes)" \
+        "SettingsFile=SYS:Devs/Picasso96Settings" "BoardType=uaegfx"
+    cp $P/Devs/Picasso96Settings.64 $Q/Devs/Picasso96Settings
+    # the installer's environment variables, at its defaults
+    for v in AmigaVideo=15kHz BlackSwitching=No DirectColorMask=No DoNotSetMMU=No ShowModes=Essential \
+             PlanarOnlyDIPFDBUF=No PlanesToFast=No EnableBootVGA=No DisableAmigaBlitter=No Debug=No Experimental=No; do
+        printf '%s' "${v#*=}" > $Q/Prefs/Env-Archive/Picasso96/${v%%=*}
+    done
+    cp $W/picasso96/Picasso96.readme $Q/
+    chmod -R a+rx,u+w $Q; rm -rf $t        # every file executable: Amiberry gives AmigaDOS the e bit from it
+else echo "make-images: no Picasso96 (tools/get-picasso96.sh): the A1200 will have no RTG"; fi
 fi
 
 # --- x16

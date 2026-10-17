@@ -71,7 +71,10 @@ shared, as VICE's filesystem device (which takes SD2IEC's `CD` commands), with
 (`tools/get-dirbrowser.sh` fetches its VICE builds; its terms do not allow
 redistribution, so it is never in this repository, only in the image built
 here).  The C64 powers on white on dark blue: the stock KERNAL with three
-bytes changed (`make-images.sh`, kernal-k4532.bin).
+bytes changed (`make-images.sh`, kernal-k4532.bin).  The keymap and the REU
+are defaults only: run/vice passes each one only when the machine's own
+section of `~/.config/vice/sdl-vicerc` does not set it (F12 -> Settings ->
+Save, or the K4532 hub's Settings form, which writes that same section).
 
 **Amiga 1200**, placement left: the sidebar is the A1200's own panel
 (`tools/patches/amiberry/k4510amiga.c`), in its off-white and lettered in
@@ -85,6 +88,19 @@ there; run/amiga adds it to a configuration written before it).  The
 the bare console SDL3 reports it as fingers, which Amiberry used only for a
 finger id SDL3 never gives; now a finger moves the pointer, a tap clicks, two
 fingers tap the right button, and a tap then a held finger drags.
+
+**RTG** on the A1200: a 68020 with all 32 address lines (its own 68EC020 has
+24, too few for a Zorro III board) and UAE's graphics card, uaegfx, 16 MB,
+with Picasso96 2.0 on DH0 -- the installer's steps done on the host by
+`make-images.sh` (`tools/amiga-icon.py` writes BoardType=uaegfx into the
+monitor driver's icon) and copied onto DH0 by run/amiga once, the card added
+to a configuration written before it (a `gfxcard_size` line of any kind is
+left alone: 0 turns RTG off).  Prefs/ScreenMode then lists the uaegfx modes.
+Picasso96 is shareware (US$20 asked of a user) and must be passed on only as
+its whole archive: `tools/get-picasso96.sh` fetches it from Aminet into
+work/, and it is never in this repository.  `tools/test-amiga-rtg.sh` boots
+the A1200 under Xvfb and reads Amiberry's log for rtg.library starting the
+card.
 
 **C128**, placement left: the other display lives along the bottom of the
 sidebar, below its panel, live (the

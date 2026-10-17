@@ -35,6 +35,16 @@ D=$HOME/personalities/$name; mkdir -p "$D/floppies"; cd "$D" || exit 1
 if [ -f "$D/Work.hdf" ] && ! grep -q "^hardfile2=.*DH1:" "$D/$name.uae"; then
     echo "hardfile2=rw,DH1:$D/Work.hdf,32,1,2,512,-128," >> "$D/$name.uae"
 fi
+# RTG (Doc, 2026-10-17): Picasso96 for uaegfx onto DH0 once (the image's p96,
+# tools/get-picasso96.sh), and the graphics card into a configuration written
+# before it -- once: a gfxcard_size line of any kind (0 is off) is left alone
+if [ "$name" = a1200 ] && [ -d "$A/p96" ] && [ -d "$D/DH0" ] && [ ! -f "$D/DH0/Libs/Picasso96/rtg.library" ]; then
+    cp -r "$A/p96/Libs" "$A/p96/Devs" "$A/p96/Prefs" "$D/DH0/" && chmod -R u+w "$D/DH0/Libs" "$D/DH0/Devs" "$D/DH0/Prefs"
+fi
+if [ "$name" = a1200 ] && ! grep -q "^gfxcard_size=" "$D/$name.uae"; then
+    sed -i '/^cpu_type=/d; /^cpu_24bit_addressing=/d; /^gfxcard_type=/d' "$D/$name.uae"
+    printf 'cpu_type=68020\ncpu_24bit_addressing=false\ngfxcard_type=ZorroIII\ngfxcard_size=16\n' >> "$D/$name.uae"
+fi
 # The sidebar: the A1200's own, lettered in Topaz from the Kickstart
 # (K4510_AMIGA_PANEL=0: the K4532 scene); the touchpad as the mouse, by
 # Amiberry's finger code (touchpad.py), not SDL's own mouse made of fingers.
