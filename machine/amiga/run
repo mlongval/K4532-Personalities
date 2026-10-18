@@ -33,9 +33,17 @@ D=$HOME/personalities/$name; mkdir -p "$D/floppies"; cd "$D" || exit 1
 # DH1:, Work, 20 MB (tools/make-amiga-hd.sh), into a configuration written
 # before it existed -- once (.added-dh1): taken out later, it stays out
 if [ -f "$D/Work.hdf" ] && [ ! -f "$D/.added-dh1" ]; then
-    grep -q "^hardfile2=.*DH1:" "$D/$name.uae" || echo "hardfile2=rw,DH1:$D/Work.hdf,32,1,2,512,-128," >> "$D/$name.uae"
+    grep -q "^hardfile2=.*DH1:" "$D/$name.uae" || echo "hardfile2=rw,DH1:$D/Work.hdf,32,1,2,512,-128,,uae1" >> "$D/$name.uae"
     touch "$D/.added-dh1"
 fi
+# A hardfile2 line that stops after the boot priority ("...,512,-128,", as
+# written here until 2026-10-18) is cut short in Amiberry's parser before it
+# is marked a hardfile, so the drive is mounted as a FOLDER at the .hdf's
+# path: write-protected, 1257 MB, and Guru 8000 0005 (divide by zero) when
+# Workbench opens it (Doc, 2026-10-18).  The filesystem field (empty: the
+# ROM's FFS) and the controller (uae1) complete it -- the form Amiberry
+# itself writes.
+sed -i -E 's/^(hardfile2=r[ow],DH[0-9]+:[^,]+,[0-9]+,[0-9]+,[0-9]+,[0-9]+,-?[0-9]+),$/\1,,uae1/' "$D/$name.uae"
 # RTG (Doc, 2026-10-17): Picasso96 for uaegfx onto DH0 once (the image's p96,
 # tools/get-picasso96.sh), and the graphics card into a configuration written
 # before it -- once (.added-rtg): turned off later (Amiberry's Save config
