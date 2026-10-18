@@ -1,11 +1,15 @@
-# K4510 Personalities
+# K4532 Personalities
 
-Other machines for the K4510x, picked at power-on like a MiSTer/MEGA65 core:
-hold **SPACE** at power-on and, just before the K4510 starts, a menu lists
-K4510, K4532, Commodore 64, 128, PET, Amiga 500, Amiga 1200, Commander X16. The
-chosen machine runs from RAM, and quitting it (F12 -> Quit) brings up the
-K4510. No space: the K4510, one second later. (A GRUB-entry version came first, but was dropped
-the same day: Doc wants Debian to show the choice.)
+Other machines for the K4532, picked at power-on like a MiSTer/MEGA65 core:
+hold **SPACE** at power-on (the splash says so) and the Chooser lists the
+Commodore 64, 128 and PET, the Amiga 1200, the Commander X16 and k4532vi.
+The chosen machine runs from RAM; quitting it (F12 -> Quit in VICE and
+Amiberry, F12 -> Exit on the X16, F12 > Power > Other machine on k4532vi)
+brings the Chooser back, and the K4532 is one of its choices.  No space:
+the machine used last, one second later.  Software goes in through the
+K4532 hub's Personalities section (files under `~/personalities/<name>`:
+D64s, ADFs, the Amiga's DH0) or a USB stick.  (A GRUB-entry version came
+first, but was dropped the same day: Doc wants Debian to show the choice.)
 (Started 2026-10-08 as "could BMC64 run in a container?" — BMC64 itself is
 Pi bare-metal glue around VICE 3.3; upstream VICE's SDL UI is the better fit.)
 
@@ -141,9 +145,10 @@ VIC-20 and Plus/4 are sidelined (Doc, 2026-10-08).
     tools/deploy-dell.sh             # images to p4, starting files to ~/personalities
     tools/deploy-dell.sh -n --only amiga   # what one family's deploy would copy, sending nothing
 
-Libraries the K4510x base lacks are found by asking `k4510-base-mimic` and
-bundled into each image's `lib/`. Refresh `tools/k4510-base.packages` from
-the K4510 repo's `linux/packages.list` when the base changes.
+Libraries the K4532's Debian base lacks are found by asking `k4510-base-mimic`
+(the container's name is still the old one) and bundled into each image's
+`lib/`. Refresh `tools/k4510-base.packages` from the K4532 repo's
+`linux/packages.list` when the base changes.
 
 Two upstream bugs patched at build time: VICE 3.10 crashes at the banner when
 stdout is not a terminal (`src/log.c`); Amiberry 8.3.0's non-OpenGL renderer
@@ -151,11 +156,11 @@ does not compile (`sdl_renderer.cpp`, a misnamed SDL3 type). And one change:
 x16emu's fullscreen becomes FULLSCREEN_DESKTOP (the panel's own mode, as the
 K4510 does) instead of a switch to a 640x480 mode the panel may not have.
 
-## The K4510 side (K4510 repo, master: 745d8e8 + spacebar menu a5cdeb0 + X16 words 39a0cb7)
+## The K4532 side (the K4532 repo, linux/)
 
-- `linux/config/includes.chroot/usr/local/bin/k4510-personality` — copy the image to /run, mount, run
-- `linux/config/includes.chroot/usr/local/bin/k4510-boot-menu` — 1 s wait for a held space, then the menu
-- `etc/profile.d/k4510.sh` — runs k4510-boot-menu on tty1 (or `k4510.personality=` from /proc/cmdline, once a boot)
+- `linux/config/includes.chroot/usr/local/bin/k4532-personality` — copy the image to /run, mount, run
+- `linux/config/includes.chroot/usr/local/bin/k4532-session` — the loop: the machine used last, the Chooser after a quit, the K4532 if the Chooser fails
+- `sdl/chooser.c` — the Chooser itself (SPACE held at power-on; `k4532.personality=` on the kernel command line picks one for a boot)
 - `docs/STORAGE.md` §3b
 
 ## Where things live on the machine
