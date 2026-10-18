@@ -58,6 +58,15 @@ if [ "$name" = a1200 ] && [ ! -f "$D/.added-rtg" ]; then
     fi
     touch "$D/.added-rtg"
 fi
+# Auto-crop (Doc, 2026-10-18: "an empty grey border around it"): the picture
+# is cut to what the Amiga actually shows -- Workbench's 640x512, not the
+# 720x568 of overscan around it in the screen's colour 0 -- and that is what
+# fills the full height at the left.  Into every configuration once
+# (.added-crop): turned off later, it stays off.
+if [ ! -f "$D/.added-crop" ]; then
+    grep -q "^amiberry.gfx_auto_crop=" "$D/$name.uae" || echo "amiberry.gfx_auto_crop=true" >> "$D/$name.uae"
+    touch "$D/.added-crop"
+fi
 # The sidebar: the A1200's own, lettered in Topaz from the Kickstart
 # (K4510_AMIGA_PANEL=0: the K4532 scene); the touchpad as the mouse, by
 # Amiberry's finger code (touchpad.py), not SDL's own mouse made of fingers.
