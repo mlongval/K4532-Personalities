@@ -2,9 +2,9 @@
 
 Other machines for the K4532, picked at power-on like a MiSTer/MEGA65 core:
 hold **SPACE** at power-on (the splash says so) and the Chooser lists the
-Commodore 64, 128 and PET, the Amiga 1200, the Commander X16 and k4532vi.
+Commodore 64, 128 and PET, the Amiga 1200 and the Commander X16.
 The chosen machine runs from RAM; quitting it (F12 -> Quit in VICE and
-Amiberry, F12 -> Exit on the X16, F12 > Power > Other machine on k4532vi)
+Amiberry, F12 -> Exit on the X16)
 brings the Chooser back, and the K4532 is one of its choices.  No space:
 the machine used last, one second later.  Software goes in through the
 K4532 hub's Personalities section (files under `~/personalities/<name>`:
@@ -29,13 +29,6 @@ the machine off, as the K4510's do.
 6): it is the machine itself, the layer's `~/k4532`, and the one these
 personalities come back to.  Its image, `machine/k4532` and
 `tools/build-k4532.sh` went; their history is in git.
-
-**K4532 vi-ui (experiment)** (`machine/k4532vi`, 2026-10-16): the K4532
-with the programs of K4532's branch `vi-ui` -- one vi-style grammar, Space
-the leader, `:name` with Tab -- to try before it goes into the machine.
-The machine's own emulator, run from `~/personalities/k4532vi` with a copy
-of its disk made the first time; the branch's programs are laid over it at
-every start.  `tools/build-k4532vi.sh && tools/deploy-dell.sh --only k4532vi`.
 
 **Placement** (all three emulators, build-time patches in `tools/patches/`):
 `K4510_PLACEMENT=left|centre`, `K4510_SCALE=fit|integer`, defaults from

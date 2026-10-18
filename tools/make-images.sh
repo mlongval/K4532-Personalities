@@ -32,7 +32,7 @@ if want amiga; then
 fi
 if [ -z "$FAMS" ]; then
     FAMS="vice amiga x16"
-    for fam in vice amiga x16; do rm -rf "$IMG/$fam" "$OUT/personalities/$fam".*; done; ALL=1   # not k4532vi: build-k4532vi.sh makes that one
+    for fam in vice amiga x16; do rm -rf "$IMG/$fam" "$OUT/personalities/$fam".*; done; ALL=1
 else
     for fam in $FAMS; do rm -rf "$IMG/$fam" "$OUT/personalities/$fam".*; done; ALL=
 fi
