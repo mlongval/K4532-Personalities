@@ -8,6 +8,7 @@
 #   floppies/   ADFs: the Workbench disks, games -- F12 -> Floppy drives
 #   DH0/        the A1200's hard drive, a directory with Workbench 3.1 on it
 #   Work.hdf    DH1:, Work, a 20 MB hardfile (FFS)
+#   Games/      DH2:, Games, if there: a directory of WHDLoad games
 A=/opt/personalities/amiga
 name=$(basename "$0")
 # The placement every personality shares: ~/personalities/display.cfg,
@@ -66,6 +67,17 @@ fi
 if [ ! -f "$D/.added-crop" ]; then
     grep -q "^amiberry.gfx_auto_crop=" "$D/$name.uae" || echo "amiberry.gfx_auto_crop=true" >> "$D/$name.uae"
     touch "$D/.added-crop"
+fi
+# DH2:, Games (Doc, 2026-10-18): a folder of WHDLoad games (Pimiga 4's
+# Games/WHDLOAD, the drive's root its AGA, OCS, CD32 ... drawers), mounted
+# as a directory; WHDLoad itself in DH0:C and its Kickstarts in
+# DH0:Devs/Kickstarts.  With it 64 MB of Zorro III fast RAM, for WHDLoad's
+# PRELOAD of the bigger games.  Into the configuration once (.added-dh2):
+# taken out later, it stays out.
+if [ -d "$D/Games" ] && [ ! -f "$D/.added-dh2" ]; then
+    grep -q "^filesystem2=.*DH2:" "$D/$name.uae" || echo "filesystem2=rw,DH2:Games:$D/Games,-128" >> "$D/$name.uae"
+    grep -q "^z3mem_size=" "$D/$name.uae" || echo "z3mem_size=64" >> "$D/$name.uae"
+    touch "$D/.added-dh2"
 fi
 # The sidebar: the A1200's own, lettered in Topaz from the Kickstart
 # (K4510_AMIGA_PANEL=0: the K4532 scene); the touchpad as the mouse, by
