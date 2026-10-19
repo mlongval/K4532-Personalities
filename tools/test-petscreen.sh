@@ -66,4 +66,10 @@ grep "k4510c64: the PET\|k4510c64: the panel" ~/log
 # 2026-10-19: no empty row at the top or below), of the 384x272 canvas
 grep "k4510: the PET.s text area" ~/log | tail -1
 grep "k4510: the PET.s text area" ~/log | tail -1 | grep -q " 320x200 " || fail "the PET picture still has its borders, or empty lines above or below the 25 rows"
-echo "test-petscreen: OK (white on blue first, GREEN AMBER GREY BLUE and TOGGLE change it, kept for the next start; blue $blue, amber $amber, grey $grey)"'
+at 16 13 3                                            # MODEL: 8032 (Doc, 2026-10-19): 80 columns, the colours kept
+grep -q "k4510c64: the model: 8032" ~/log || fail "MODEL 8032"
+[ "$(cat ~/personalities/pet/model)" = 8032 ] || fail "the model not kept"
+[ "$(colours)" = "$blue" ] || fail "the colours after the model ($(colours))"
+grep "k4510: the PET.s text area" ~/log | tail -1 | grep -q " 640x" || fail "the 8032 not cropped to its 80 columns"
+grep "k4510: the PET.s text area" ~/log | tail -1
+echo "test-petscreen: OK (white on blue first, GREEN AMBER GREY BLUE and TOGGLE change it, kept for the next start; MODEL 8032; blue $blue, amber $amber, grey $grey)"'

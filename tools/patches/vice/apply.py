@@ -85,6 +85,10 @@ static int k4510_crtc_crop(struct video_canvas_s *o, SDL_Rect *s)
     y0 = y0 > o->viewport->first_line ? y0 - o->viewport->first_line : 0;
     x1 = x1 > o->viewport->first_x ? x1 - o->viewport->first_x : 0;
     y1 = y1 > o->viewport->first_line ? y1 - o->viewport->first_line : 0;
+    x0 += o->viewport->x_offset;   /* where raster-canvas.c puts the lines on the canvas */
+    x1 += o->viewport->x_offset;   /* (the Dell's kmsdrm screen: 8 lines down, 2026-10-19) */
+    y0 += o->viewport->y_offset;
+    y1 += o->viewport->y_offset;
     s->x = (int)x0 * sx;
     s->y = (int)y0 * sy;
     s->w = MIN((int)x1 * sx, (int)o->width) - s->x;
@@ -92,7 +96,7 @@ static int k4510_crtc_crop(struct video_canvas_s *o, SDL_Rect *s)
     {
         static SDL_Rect said;
         if (memcmp(&said, s, sizeof said)) {
-            log_message(LOG_DEFAULT, "k4510: the PET's text area %d,%d %dx%d of the canvas %dx%d", s->x, s->y, s->w, s->h, (int)o->width, (int)o->height);
+            log_message(LOG_DEFAULT, "k4510: the PET's text area %d,%d %dx%d of the canvas %dx%d (viewport offset %u,%u)", s->x, s->y, s->w, s->h, (int)o->width, (int)o->height, o->viewport->x_offset, o->viewport->y_offset);
             said = *s;
         }
     }

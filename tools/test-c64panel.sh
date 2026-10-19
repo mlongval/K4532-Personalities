@@ -45,10 +45,10 @@ echo "colours: $c"
 B=$((rows - 14))                                      # DISKS and EJECT: above the 11 keys
 at 2 $B                                               # DISKS
 grep -q "k4510c64: disks in /home/k4510/personalities/c64, 2" ~/log || fail "DISKS did not list the two folders"
-at 2 13                                               # GAMES/ (folders in order: DEMOS, GAMES)
-at 2 13                                               # TEST.D64 (after ^ UP)
+at 2 16                                               # GAMES/ (folders in order: DEMOS, GAMES; below SD and MODEL)
+at 2 16                                               # TEST.D64 (after ^ UP)
 grep -q "k4510c64: drive 8: /home/k4510/personalities/c64/GAMES/TEST.D64" ~/log || fail "the disk did not go in"
-at 2 13 5                                             # "SECOND", the second program
+at 2 16 5                                             # "SECOND", the second program
 grep -q "k4510c64: .*TEST.D64, program 2: load and run" ~/log || fail "a click on the directory did not run its program"
 grep -q "AUTOSTART: Resetting the machine to autostart .SECOND." ~/log || fail "VICE did not autostart SECOND (the directory shown was not this disk)"
 at 10 $B                                              # EJECT (after DISKS)
@@ -56,6 +56,9 @@ grep -q "k4510c64: eject" ~/log || fail "EJECT"
 at 8 9 4                                              # BROWSE, on the SD row
 grep -q "k4510c64: browse: /home/k4510/personalities/SD/DB64" ~/log || fail "BROWSE"
 grep -q "AUTOSTART.*DB64\|Loading.*DB64\|db64" ~/log || grep -qi "autostart.*prg" ~/log || fail "Dir Browser did not start"
+at 5 12 4                                             # MODEL: C64C (Doc, 2026-10-19), our KERNAL kept
+grep -q "k4510c64: the model: c64c (KERNAL kernal-k4532.bin)" ~/log || fail "MODEL C64C"
+[ "$(cat ~/personalities/c64/model)" = c64c ] || fail "the model not kept"
 grep "k4510c64\|AUTOSTART: Resetting" ~/log
 # the C128: its panel, above the other screen
 pkill -f x64sc 2>/dev/null || kill $(pidof x64sc) 2>/dev/null; sleep 1
@@ -86,7 +89,7 @@ first=$(grep -c "k4510c64: the PET.s colours" ~/logpet)
 [ "$first" -ge 1 ] || { cat ~/logpet; echo "test-c64panel: FAILED: the PET panel did not read the screen colours"; exit 1; }
 B=$((rows - 12))                                      # DISKS: above the 9 keys
 at 2 $B                                               # DISKS
-at 2 13                                               # TEST.D64 (below the SCREEN rows)
+at 2 16                                               # TEST.D64 (below the SCREEN and MODEL rows)
 grep -q "k4510c64: drive 8: /home/k4510/personalities/pet/TEST.D64" ~/logpet || { cat ~/logpet; echo "test-c64panel: FAILED: the PET disk"; exit 1; }
 # the palette changed while it runs (as F12 changes it: the resources, here
 # by the remote monitor), then the PET by symbol too: "." is "." (VICE 3.10

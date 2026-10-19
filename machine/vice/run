@@ -50,9 +50,14 @@ SD=$HOME/personalities/SD; mkdir -p "$SD"
 for f in DB64 DB128; do [ -f "$SD/$f" ] || [ ! -f "$V/share/dirbrowser/$f" ] || cp "$V/share/dirbrowser/$f" "$SD/$f"; done
 export K4510_SD=$SD
 sd="-drive9type 0 -busdevice9 -devicebackend9 1 -fs9 $SD"
+# The model the sidebar's MODEL row chose (Doc, 2026-10-19), -model's word
+# in ~/personalities/<name>/model; the PET a 4032 unless chosen.
+model=$(sed -n '1{s/[^0-9a-z]//g;p}' "$D/model" 2>/dev/null)
 case "$name" in
-c64)  exec $V/bin/x64sc $common -VICIIfull $reu $sd -kernal kernal-k4532.bin "$@" ;;   # the KERNAL's power-on colours: white on dark blue (make-images.sh)
-c128) exec $V/bin/x128  $common -VICIIfull -VDCfull $reu $sd "$@" ;;
+c64)  k="-kernal kernal-k4532.bin"   # the KERNAL's power-on colours: white on dark blue (make-images.sh); not the SX-64's
+      [ "$model" = sx64 ] && k=
+      exec $V/bin/x64sc $common ${model:+-model $model} -VICIIfull $reu $sd $k "$@" ;;
+c128) exec $V/bin/x128  $common ${model:+-model $model} -VICIIfull -VDCfull $reu $sd "$@" ;;
 pet)  # The screen's colours (Doc, 2026-10-18): white on dark blue unless
       # the sidebar's SCREEN buttons chose another (palette=green|amber|grey|
       # whiteblue in ~/personalities/pet/palette).  After -model, which sets
@@ -60,6 +65,6 @@ pet)  # The screen's colours (Doc, 2026-10-18): white on dark blue unless
       # in F12 -> Settings at every start.
       pal=$(sed -n 's/^palette=//p' "$D/palette" 2>/dev/null)
       case "$pal" in green|amber|grey|whiteblue) ;; *) pal=whiteblue ;; esac
-      exec $V/bin/xpet  $common -model 4032 -CRTCfull -CRTCextpal -CRTCpalette $pal.vpl "$@" ;;   # 40 columns, 32K: what most PET games (PETSCII Robots) want
+      exec $V/bin/xpet  $common -model ${model:-4032} -CRTCfull -CRTCextpal -CRTCpalette $pal.vpl "$@" ;;   # 40 columns, 32K: what most PET games (PETSCII Robots) want
 *)    echo "vice: no personality called $name"; exit 1 ;;
 esac

@@ -23,6 +23,12 @@
  *                  white on BLUE (the first time: blue), and TOGGLE between
  *                  blue and the last of the other three; kept in the file
  *                  palette in ~/personalities/pet, which run/pet reads
+ *   MODEL          which machine (Doc, 2026-10-19): the PET a 2001, 3032,
+ *                  4032 or 8032 (80 columns); the C64 a breadbin, a C64C,
+ *                  an SX-64 or an NTSC one; the C128 a C128, a C128DCR or
+ *                  an NTSC one -- a click switches it and powers it on again;
+ *                  kept in the file model in ~/personalities/<name> as
+ *                  -model's word, which run/vice passes
  *   KEYS           the machine's keys on the PC's (-keymap 0, sdl_sym.vkm;
  *                  the PET's too, sdl_grus_sym.vkm)
  *
@@ -98,7 +104,7 @@ static int c64p_tw, c64p_th;
 static char c64p_sd[1024];                       /* the SD volume, drive 9 (K4510_SD) */
 
 /* what the mouse can click, as the last frame drew it (machine pixels) */
-enum { H_ENTRY = 1, H_DISKS, H_BACK, H_EJECT, H_FILE, H_UP, H_DOWN, H_BROWSE, H_PAL, H_PALTOG };
+enum { H_ENTRY = 1, H_DISKS, H_BACK, H_EJECT, H_FILE, H_UP, H_DOWN, H_BROWSE, H_PAL, H_PALTOG, H_MODEL };
 #define C64P_HITS 128
 static struct { int x, y, w, h, what, arg; } c64p_hit[C64P_HITS];
 static int c64p_nhit;
@@ -115,6 +121,7 @@ static int c64p_disk_ok;
 /* the disk chooser */
 static int c64p_view, c64p_scroll[2];
 static char c64p_root[1024], c64p_cwd[1024];
+static char c64p_kernal[256];                     /* the KernalName run/vice gave the C64 (kernal-k4532.bin: its colours) */
 #define C64P_FILES 512
 static struct { char name[128]; int dir; } c64p_file[C64P_FILES];
 static int c64p_nfile;
@@ -142,6 +149,10 @@ k4510c64_active(void)
             snprintf(c64p_cwd, sizeof c64p_cwd, "%s", c64p_root);
         }
         snprintf(c64p_sd, sizeof c64p_sd, "%s", sd ? sd : "");
+        if (c64) {
+            const char *k = NULL;
+            if (resources_get_string("KernalName", &k) == 0 && k && strstr(k, "k4532")) snprintf(c64p_kernal, sizeof c64p_kernal, "%s", k);
+        }
     }
     return c64p_on;
 }
@@ -227,6 +238,69 @@ c64p_pal_set(int i)
     snprintf(path, sizeof path, "%s/palette", c64p_root);
     if ((f = fopen(path, "w"))) {
         fprintf(f, "palette=%s\nmono=%s\n", c64p_pal_word[i], c64p_pal_word[c64p_pal_mono]);
+        fclose(f);
+    }
+}
+
+/* the model: VICE's own numbers (petmodel.h, c64model.h, c128model.h) and
+ * -model's words; each program has only its machine's functions */
+extern int petmodel_get(void) __attribute__((weak));
+extern void petmodel_set(int model) __attribute__((weak));
+extern int c64model_get(void) __attribute__((weak));
+extern void c64model_set(int model) __attribute__((weak));
+extern int c128model_get(void) __attribute__((weak));
+extern void c128model_set(int model) __attribute__((weak));
+typedef struct { const char *label, *word; int model; } c64p_model_t;
+static const c64p_model_t c64p_models_pet[] = {
+    { "2001", "2001", 0 }, { "3032", "3032", 3 }, { "4032", "4032", 6 }, { "8032", "8032", 8 }, { NULL, NULL, 0 }
+};
+static const c64p_model_t c64p_models_c64[] = {   /* C64MODEL_C64_PAL, _C64C_PAL, _C64SX_PAL, _C64_NTSC */
+    { "C64", "c64", 0 }, { "C64C", "c64c", 1 }, { "SX64", "sx64", 7 }, { "NTSC", "ntsc", 3 }, { NULL, NULL, 0 }
+};
+static const c64p_model_t c64p_models_c128[] = {  /* C128MODEL_C128_PAL, _C128DCR_PAL, _C128_NTSC */
+    { "C128", "c128", 0 }, { "C128DCR", "c128dcr", 2 }, { "NTSC", "ntsc", 3 }, { NULL, NULL, 0 }
+};
+
+static const c64p_model_t *
+c64p_models(void)
+{
+    if (machine_class == VICE_MACHINE_PET) return petmodel_get && petmodel_set ? c64p_models_pet : NULL;
+    if (machine_class == VICE_MACHINE_C128) return c128model_get && c128model_set ? c64p_models_c128 : NULL;
+    return c64model_get && c64model_set ? c64p_models_c64 : NULL;
+}
+static int
+c64p_model_now(void)
+{
+    if (machine_class == VICE_MACHINE_PET) return petmodel_get();
+    if (machine_class == VICE_MACHINE_C128) return c128model_get();
+    return c64model_get();
+}
+static void
+c64p_model_set(int i)
+{
+    const c64p_model_t *m = c64p_models();
+    char path[1100];
+    FILE *f;
+    if (!m) return;
+    m += i;
+    if (machine_class == VICE_MACHINE_PET) {
+        petmodel_set(m->model);
+        if (c64p_pal >= 0) c64p_pal_set(c64p_pal);   /* the model sets its own palette */
+    } else if (machine_class == VICE_MACHINE_C128) {
+        c128model_set(m->model);
+    } else {
+        c64model_set(m->model);                  /* the C64's KERNAL with it: */
+        if (c64p_kernal[0] && strcmp(m->word, "sx64")) resources_set_string("KernalName", c64p_kernal);   /* ours again, but the SX-64's own */
+    }
+    machine_trigger_reset(MACHINE_RESET_MODE_POWER_CYCLE);
+    {
+        const char *k = NULL;
+        resources_get_string("KernalName", &k);
+        log_message(LOG_DEFAULT, "k4510c64: the model: %s (KERNAL %s)", m->word, k ? k : "?");
+    }
+    snprintf(path, sizeof path, "%s/model", c64p_root);
+    if ((f = fopen(path, "w"))) {
+        fprintf(f, "%s\n", m->word);
         fclose(f);
     }
 }
@@ -520,6 +594,7 @@ c64p_click(int x, int y)
         case H_BROWSE: c64p_browse(); break;
         case H_PAL:    c64p_pal_set(c64p_hit[i].arg); break;
         case H_PALTOG: c64p_pal_set(c64p_pal == 3 ? c64p_pal_mono : 3); break;
+        case H_MODEL:  c64p_model_set(c64p_hit[i].arg); break;
         }
         return;
     }
@@ -561,6 +636,18 @@ c64p_render(uint32_t ms)
             int len = (int)strlen(c64p_pal_name[i]), cur = i == c64p_pal, on = c64p_over(col * 8, (r + 1) * 8, len * 8, 8);
             c64p_text(col, r + 1, c64p_pal_name[i], on ? c64p_t->folder : cur ? c64p_t->text : c64p_t->dim, c64p_t->bg, cur || on);
             c64p_hitbox(col * 8, (r + 1) * 8, len * 8, 8, H_PAL, i);
+            col += len + 1;
+        }
+        r += 3;
+    }
+    if (c64p_models()) {                          /* the model: the one it is reversed, the others to click */
+        const c64p_model_t *m = c64p_models();
+        int col = 1, now = c64p_model_now();
+        c64p_text(1, r, "MODEL", c64p_t->text, c64p_t->bg, 0);
+        for (i = 0; m[i].label; i++) {
+            int len = (int)strlen(m[i].label), cur = m[i].model == now, on = c64p_over(col * 8, (r + 1) * 8, len * 8, 8);
+            c64p_text(col, r + 1, m[i].label, on ? c64p_t->folder : cur ? c64p_t->text : c64p_t->dim, c64p_t->bg, cur || on);
+            c64p_hitbox(col * 8, (r + 1) * 8, len * 8, 8, H_MODEL, i);
             col += len + 1;
         }
         r += 3;
