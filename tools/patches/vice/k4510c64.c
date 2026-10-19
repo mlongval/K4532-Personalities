@@ -19,6 +19,10 @@
  *   SD #9          the SD volume (a folder, VICE's filesystem device, as an
  *                  SD2IEC is); BROWSE runs Dir Browser (DB64 / DB128) on it;
  *                  not on the PET
+ *   SCREEN         the PET's only: its phosphor -- GREEN, AMBER, GREY or
+ *                  white on BLUE (the first time: blue), and TOGGLE between
+ *                  blue and the last of the other three; kept in the file
+ *                  palette in ~/personalities/pet, which run/pet reads
  *   KEYS           the machine's keys on the PC's (-keymap 0, sdl_sym.vkm;
  *                  the PET's too, sdl_grus_sym.vkm)
  *
@@ -94,7 +98,7 @@ static int c64p_tw, c64p_th;
 static char c64p_sd[1024];                       /* the SD volume, drive 9 (K4510_SD) */
 
 /* what the mouse can click, as the last frame drew it (machine pixels) */
-enum { H_ENTRY = 1, H_DISKS, H_BACK, H_EJECT, H_FILE, H_UP, H_DOWN, H_BROWSE };
+enum { H_ENTRY = 1, H_DISKS, H_BACK, H_EJECT, H_FILE, H_UP, H_DOWN, H_BROWSE, H_PAL, H_PALTOG };
 #define C64P_HITS 128
 static struct { int x, y, w, h, what, arg; } c64p_hit[C64P_HITS];
 static int c64p_nhit;
@@ -182,6 +186,49 @@ c64p_pet_colours(struct video_canvas_s *canvas)
     c64p_pet.drive = c64p_petdrive;
     c64p_pet.wide = type == DRIVE_TYPE_2040 || type == DRIVE_TYPE_3040 || type == DRIVE_TYPE_4040
                  || type == DRIVE_TYPE_8050 || type == DRIVE_TYPE_8250;   /* the two-drive cases */
+}
+
+/* the PET's screen: the four phosphors (share/vice/PET/<file>, whiteblue and
+ * grey made by make-images.sh), the one shown and the last that was not blue;
+ * the palette file in its folder keeps them for run/pet's next start */
+static const char *const c64p_pal_name[4] = { "GREEN", "AMBER", "GREY", "BLUE" };
+static const char *const c64p_pal_word[4] = { "green", "amber", "grey", "whiteblue" };
+static int c64p_pal = -1, c64p_pal_mono = 0;
+static void
+c64p_pal_read(void)
+{
+    char path[1100], line[64];
+    FILE *f;
+    int i;
+    c64p_pal = 3; c64p_pal_mono = 0;
+    snprintf(path, sizeof path, "%s/palette", c64p_root);
+    if (!(f = fopen(path, "r"))) return;
+    while (fgets(line, sizeof line, f)) {
+        line[strcspn(line, "\r\n")] = 0;
+        for (i = 0; i < 4; i++) {
+            if (!strncmp(line, "palette=", 8) && !strcmp(line + 8, c64p_pal_word[i])) c64p_pal = i;
+            if (!strncmp(line, "mono=", 5) && !strcmp(line + 5, c64p_pal_word[i]) && i < 3) c64p_pal_mono = i;
+        }
+    }
+    fclose(f);
+}
+static void
+c64p_pal_set(int i)
+{
+    char path[1100], file[32];
+    FILE *f;
+    if (i < 0 || i > 3) return;
+    c64p_pal = i;
+    if (i < 3) c64p_pal_mono = i;
+    snprintf(file, sizeof file, "%s.vpl", c64p_pal_word[i]);
+    resources_set_string("CrtcPaletteFile", file);
+    resources_set_int("CrtcExternalPalette", 1);
+    log_message(LOG_DEFAULT, "k4510c64: the PET's screen: %s", file);
+    snprintf(path, sizeof path, "%s/palette", c64p_root);
+    if ((f = fopen(path, "w"))) {
+        fprintf(f, "palette=%s\nmono=%s\n", c64p_pal_word[i], c64p_pal_word[c64p_pal_mono]);
+        fclose(f);
+    }
 }
 
 /* ---- drawing, in machine pixels --------------------------------------------- */
@@ -471,6 +518,8 @@ c64p_click(int x, int y)
         case H_UP:    c64p_scroll[c64p_view] -= 5; break;
         case H_DOWN:  c64p_scroll[c64p_view] += 5; break;
         case H_BROWSE: c64p_browse(); break;
+        case H_PAL:    c64p_pal_set(c64p_hit[i].arg); break;
+        case H_PALTOG: c64p_pal_set(c64p_pal == 3 ? c64p_pal_mono : 3); break;
         }
         return;
     }
@@ -502,6 +551,19 @@ c64p_render(uint32_t ms)
         c64p_text(1, r, "SD #9", c64p_t->text, c64p_t->bg, 0);
         c64p_button(7, r, " BROWSE ", H_BROWSE);
         r += 2;
+    }
+    if (c64p_t == &c64p_pet) {                    /* the PET's screen: the shown phosphor reversed, the others to click */
+        int col = 1;
+        if (c64p_pal < 0) c64p_pal_read();
+        c64p_text(1, r, "SCREEN", c64p_t->text, c64p_t->bg, 0);
+        c64p_button(8, r, " TOGGLE ", H_PALTOG);
+        for (i = 0; i < 4; i++) {
+            int len = (int)strlen(c64p_pal_name[i]), cur = i == c64p_pal, on = c64p_over(col * 8, (r + 1) * 8, len * 8, 8);
+            c64p_text(col, r + 1, c64p_pal_name[i], on ? c64p_t->folder : cur ? c64p_t->text : c64p_t->dim, c64p_t->bg, cur || on);
+            c64p_hitbox(col * 8, (r + 1) * 8, len * 8, 8, H_PAL, i);
+            col += len + 1;
+        }
+        r += 3;
     }
     for (nkeys = 0; c64p_t->keys[nkeys][0]; nkeys++) ;
     if (nkeys > rows - r - 12) nkeys = rows - r - 12 > 0 ? rows - r - 12 : 0;   /* a short sidebar (the C128's): the first keys */

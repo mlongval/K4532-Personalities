@@ -45,6 +45,9 @@ mkdir -p $V/bin $V/share/vice $V/lib $V/run
 cp $S/bin/x64sc $S/bin/x128 $S/bin/xpet $S/bin/c1541 $S/bin/petcat $V/bin/
 for d in C64 C128 PET DRIVES PRINTER common hotkeys; do [ -d $S/share/vice/$d ] && cp -a $S/share/vice/$d $V/share/vice/; done
 cp "$HERE/machine/vice/run" $V/run/vice; cp "$HERE/machine/vice/list" $V/list
+# The PET's screens beside VICE's green, amber and white: white on blue (its
+# default since 2026-10-18) and grey -- the sidebar's SCREEN buttons
+cp "$HERE"/machine/vice/PET/*.vpl $V/share/vice/PET/
 # The C64's power-on screen white on dark blue (Doc, 2026-10-17): the stock
 # KERNAL with three bytes changed -- LDA #$0E at $E534 (the text colour)
 # becomes #$01, and VIC-II's start values at $ECD9/$ECDA (border, screen)

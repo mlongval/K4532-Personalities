@@ -1,0 +1,18 @@
+#
+# VICE Palette file
+#
+# Syntax:
+# Red Green Blue
+#
+# NAME:White on blue
+# TYPE:Crtc
+
+# K4532-Personalities (Doc, 2026-10-18): the PET's screen white on dark
+# blue -- VICE brightens a palette as it draws it, so this shows about
+# the C64's blue (35 28 79)
+
+# Background
+24 1C 62
+
+# Foreground
+FF FF FF

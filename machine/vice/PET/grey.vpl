@@ -1,0 +1,17 @@
+#
+# VICE Palette file
+#
+# Syntax:
+# Red Green Blue
+#
+# NAME:Grey
+# TYPE:Crtc
+
+# K4532-Personalities (Doc, 2026-10-18): a grey phosphor, softer than
+# VICE's white (VICE brightens it as it draws: this shows about C8)
+
+# Background
+00 00 00
+
+# Foreground
+A0 A0 A0

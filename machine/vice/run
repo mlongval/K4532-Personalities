@@ -51,6 +51,13 @@ sd="-drive9type 0 -busdevice9 -devicebackend9 1 -fs9 $SD"
 case "$name" in
 c64)  exec $V/bin/x64sc $common -VICIIfull $reu $sd -kernal kernal-k4532.bin "$@" ;;   # the KERNAL's power-on colours: white on dark blue (make-images.sh)
 c128) exec $V/bin/x128  $common -VICIIfull -VDCfull $reu $sd "$@" ;;
-pet)  exec $V/bin/xpet  $common -model 4032 -CRTCfull "$@" ;;   # 40 columns, 32K: what most PET games (PETSCII Robots) want
+pet)  # The screen's colours (Doc, 2026-10-18): white on dark blue unless
+      # the sidebar's SCREEN buttons chose another (palette=green|amber|grey|
+      # whiteblue in ~/personalities/pet/palette).  After -model, which sets
+      # the 4032's own (the internal green) and so undid a palette chosen
+      # in F12 -> Settings at every start.
+      pal=$(sed -n 's/^palette=//p' "$D/palette" 2>/dev/null)
+      case "$pal" in green|amber|grey|whiteblue) ;; *) pal=whiteblue ;; esac
+      exec $V/bin/xpet  $common -model 4032 -CRTCfull -CRTCextpal -CRTCpalette $pal.vpl "$@" ;;   # 40 columns, 32K: what most PET games (PETSCII Robots) want
 *)    echo "vice: no personality called $name"; exit 1 ;;
 esac
