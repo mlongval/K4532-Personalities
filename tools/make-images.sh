@@ -152,6 +152,10 @@ podman run --rm -v "$H/a1200:/h:Z" personalities-builder sh -c '
     cp -an $t/extras/. /h/DH0/
     mkdir -p /h/DH0/Fonts /h/DH0/Locale /h/DH0/Storage
     cp -an $t/fonts/. /h/DH0/Fonts/; cp -an $t/locale/. /h/DH0/Locale/; cp -an $t/storage/. /h/DH0/Storage/
+    # its icon a hard drive, not the Workbench floppy: the one Workbench 3.1
+    # installer puts on a hard drive (Install disk, Update/Disk.info)
+    mkdir $t/install; unadf /h/floppies/amiga-os-310-install.adf -d $t/install >/dev/null 2>&1
+    cp $t/install/Update/Disk.info /h/DH0/Disk.info
     chmod -R a+rx,u+w /h/DH0'
 
 # Where the pictures go, for every personality (the X16's F12 menu changes
