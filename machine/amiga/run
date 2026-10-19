@@ -75,6 +75,18 @@ if [ "$name" = a1200 ] && [ -d "$A/dh0" ] && [ -d "$D/DH0" ] && [ ! -f "$D/.adde
     grep -q 'Desktop-Scalos' "$F" || sed -i 's|^C:LoadWB$|; the desktop (K4532, 2026-10-18): Scalos when S:Desktop-Scalos is there\n; (the A1200 sidebar'"'"'s Desktop, F11), Workbench 3.1'"'"'s own otherwise\nIF EXISTS S:Desktop-Scalos\n  IF EXISTS C:LoadWB.scalos\n    C:Assign >NIL: Scalos: SYS:Scalos\n    C:LoadWB.scalos\n  Else\n    C:LoadWB\n  EndIF\nElse\n  C:LoadWB\nEndIF|' "$F"
     touch "$D/.added-scalos"
 fi
+# MUI 3.8 (Doc, 2026-10-18: "add mui"), for Scalos's Prefs and windows:
+# SYS:MUI from the same tree once (.added-mui), and the lines its installer
+# adds to S:User-Startup (MUI: assigned, its Libs and Locale added).
+if [ "$name" = a1200 ] && [ -d "$A/dh0/MUI" ] && [ -d "$D/DH0" ] && [ ! -f "$D/.added-mui" ]; then
+    [ -d "$D/DH0/MUI" ] || { cp -r "$A/dh0/MUI" "$D/DH0/" && cp -n "$A/dh0/MUI.info" "$D/DH0/" 2>/dev/null; chmod -R u+w "$D/DH0/MUI"; }
+    U=$D/DH0/S/User-Startup
+    grep -q "BEGIN MUI" "$U" 2>/dev/null || printf '%s\n' ';BEGIN MUI' 'if exists "SYS:MUI"' '   assign MUI: "SYS:MUI"' \
+        '   if exists MUI:Libs' '      assign add LIBS: MUI:Libs' '   endif' '   if exists MUI:Locale' '      assign add LOCALE: MUI:Locale' \
+        '   endif' '   version >nil: exec.library 39' '   if not warn' '      if exists MUI:Docs' '         if exists HELP:dummy ; do not remove' \
+        '         endif                ; this entry!' '         assign add HELP: MUI:Docs' '      endif' '   endif' 'endif' ';END MUI' >> "$U"
+    touch "$D/.added-mui"
+fi
 # the sidebar's Desktop box and its F11, where the Startup-Sequence chooses
 [ "$name" = a1200 ] && [ -f "$D/DH0/C/LoadWB.scalos" ] && grep -q 'Desktop-Scalos' "$D/DH0/S/Startup-Sequence" 2>/dev/null \
     && export K4510_AMIGA_DESKTOP=$D/DH0/S/Desktop-Scalos

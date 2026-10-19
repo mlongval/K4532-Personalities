@@ -86,7 +86,7 @@ first=$(grep -c "k4510c64: the PET.s colours" ~/logpet)
 [ "$first" -ge 1 ] || { cat ~/logpet; echo "test-c64panel: FAILED: the PET panel did not read the screen colours"; exit 1; }
 B=$((rows - 12))                                      # DISKS: above the 9 keys
 at 2 $B                                               # DISKS
-at 2 10                                               # TEST.D64
+at 2 13                                               # TEST.D64 (below the SCREEN rows)
 grep -q "k4510c64: drive 8: /home/k4510/personalities/pet/TEST.D64" ~/logpet || { cat ~/logpet; echo "test-c64panel: FAILED: the PET disk"; exit 1; }
 # the palette changed while it runs (as F12 changes it: the resources, here
 # by the remote monitor), then the PET by symbol too: "." is "." (VICE 3.10

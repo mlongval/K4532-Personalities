@@ -4,10 +4,12 @@
 # done on the host): SYS:Scalos (Scalos: is assigned to it), its libraries
 # and icon datatypes, the default prefs in ENVARC:Scalos, and its LoadWB as
 # C:LoadWB.scalos beside Workbench's own (the Startup-Sequence picks one by
-# S:Desktop-Scalos); icon.library v51 in Libs: with RemLib in C:.  Needs
-# the archives of tools/get-scalos.sh in $2 (work/scalos).
+# S:Desktop-Scalos); icon.library v51 in Libs: with RemLib in C:; and
+# MUI 3.8 in SYS:MUI as its installer puts it (its User-Startup lines are
+# run/amiga's), the custom classes in MUI:Libs/mui.  Needs the archives of
+# tools/get-scalos.sh in $2 (work/scalos).
 set -e
-H=$1; Z=$2
+H=$1; Z=$(cd "${2:-.}" && pwd)
 [ -n "$H" ] && [ -f "$Z/ScalosBeta_41.7_68K.lha" ] && [ -f "$Z/IconLib_46.4.lha" ] || { echo "usage: $0 DH0 work/scalos"; exit 1; }
 t=$(mktemp -d); trap 'rm -rf "$t"' EXIT
 (cd $t && lha xq "$Z/ScalosBeta_41.7_68K.lha" && lha xq "$Z/IconLib_46.4.lha")
@@ -31,5 +33,20 @@ cp "$X/env-archive/deficons.prefs" "$E/"
 cp "$X/c/LoadWB" "$H/C/LoadWB.scalos"
 cp "$I/Libs/icon.library" "$H/Libs/icon.library"
 cp "$I/ThirdParty/RemLib/RemLib" "$H/C/RemLib"
+# MUI: the package's drawer less its installer, and the 68k classes
+M=$H/MUI; m=$t/mui; mkdir -p "$m" && (cd "$m" && lha xq "$Z/mui/mui38usr.lha")
+cp -r "$m/MUI" "$H/"; cp "$m/MUI.info" "$H/" 2>/dev/null || true
+rm -rf "$M/Install-MUI" "$M/Install-MUI.info" "$M/Installer433"
+for a in "$Z"/mui/MCC_*.lha; do (cd "$m" && lha xq "$a"); done
+for c in BetterString.mcc BetterString.mcp HotkeyString.mcc NBalance.mcc NBitmap.mcc NFloattext.mcc NList.mcc \
+         NListtree.mcc NListtree.mcp NListview.mcc NListviews.mcp TextEditor.mcc TextEditor.mcp; do
+    cp "$(find "$m" -path '*AmigaOS3*' -name "$c" | head -1)" "$M/Libs/mui/$c"
+done
+cp "$m/MCC_Lamp/Libs/MUI/Lamp020.mcc" "$M/Libs/mui/Lamp.mcc"; cp "$m/MCC_Lamp/Libs/MUI/Lamp.mcp" "$M/Libs/mui/"
+cp "$m/MCC_Urltext/MUI/Urltext.mcc" "$m/MCC_Urltext/MUI/Urltext.mcp" "$M/Libs/mui/"
+cp "$m/MCC_Textinput/MUI/Textinput.mcc" "$m/MCC_Textinput/MUI/Textinput.mcp" "$m/MCC_Textinput/MUI/Textinputscroll.mcc" "$M/Libs/mui/"
+cp "$m/MCC_Popph/Libs/mui/Popplaceholder.mcc" "$M/Libs/mui/"
+(cd "$M/Libs/mui" && lha xq "$Z/mui/pophotkey_1715.lha")
 chmod -R a+rX,u+w "$H"
-chmod a+x "$S/Scalos" "$H/C/LoadWB.scalos" "$H/C/RemLib" "$H"/Libs/*.library   # Amiberry gives AmigaDOS the e bit from it
+chmod a+x "$S/Scalos" "$H/C/LoadWB.scalos" "$H/C/RemLib" "$H"/Libs/*.library "$M"/Libs/*.library "$M"/Libs/mui/*   # Amiberry gives AmigaDOS the e bit from it
+find "$S/Prefs" "$S/Tools" "$M" -type f ! -name '*.info' -exec chmod a+x {} +

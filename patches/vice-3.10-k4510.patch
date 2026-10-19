@@ -993,12 +993,12 @@ diff -ruN a/src/arch/sdl/video_sdl2.c b/src/arch/sdl/video_sdl2.c
  #include <stdio.h>
  #include "vice_sdl.h"
  
-@@ -796,6 +799,242 @@
+@@ -796,6 +799,277 @@
      return canvas;
  }
  
 +/* K4510 (K4510-Personalities) ------------------------------------------------------ */
-+static int k4510_left = -1, k4510_whole = 0, k4510_borders = 1;
++static int k4510_left = -1, k4510_whole = 0, k4510_borders = 1, k4510_pet_borders = 0;
 +
 +static void k4510_env(void)
 +{
@@ -1009,6 +1009,8 @@ diff -ruN a/src/arch/sdl/video_sdl2.c b/src/arch/sdl/video_sdl2.c
 +        k4510_whole = e && !strcmp(e, "integer");
 +        e = getenv("K4510_VDC_BORDERS");
 +        k4510_borders = !(e && !strcmp(e, "off"));
++        e = getenv("K4510_PET_BORDERS");
++        k4510_pet_borders = e && !strcmp(e, "on");
 +    }
 +}
 +
@@ -1033,6 +1035,38 @@ diff -ruN a/src/arch/sdl/video_sdl2.c b/src/arch/sdl/video_sdl2.c
 +    s->y = (int)y0 * sy;
 +    s->w = MIN((int)x1 * sx, (int)o->width) - s->x;
 +    s->h = MIN((int)y1 * sy, (int)o->height) - s->y;
++    return s->w >= 64 && s->h >= 64;
++}
++
++/* xpet only (crtc.c): the PET's text area last frame, raster coords. */
++extern int k4510_crtc_area(struct video_canvas_s *canvas, unsigned int *x0, unsigned int *y0,
++                           unsigned int *x1, unsigned int *y1) __attribute__((weak));
++
++/* The PET's 40 (or 80) columns by 25 rows and nothing round them (Doc,
++ * 2026-10-18: "get rid of borders please"), in the canvas's pixels; 0 when
++ * the canvas is not the CRTC's. */
++static int k4510_crtc_crop(struct video_canvas_s *o, SDL_Rect *s)
++{
++    unsigned int x0, y0, x1, y1;
++    int sx = o->videoconfig->scalex, sy = o->videoconfig->scaley;
++    if (!k4510_crtc_area || !k4510_crtc_area(o, &x0, &y0, &x1, &y1)) {
++        return 0;
++    }
++    x0 = x0 > o->viewport->first_x ? x0 - o->viewport->first_x : 0;
++    y0 = y0 > o->viewport->first_line ? y0 - o->viewport->first_line : 0;
++    x1 = x1 > o->viewport->first_x ? x1 - o->viewport->first_x : 0;
++    y1 = y1 > o->viewport->first_line ? y1 - o->viewport->first_line : 0;
++    s->x = (int)x0 * sx;
++    s->y = (int)y0 * sy;
++    s->w = MIN((int)x1 * sx, (int)o->width) - s->x;
++    s->h = MIN((int)y1 * sy, (int)o->height) - s->y;
++    {
++        static SDL_Rect said;
++        if (memcmp(&said, s, sizeof said)) {
++            log_message(LOG_DEFAULT, "k4510: the PET's text area %d,%d %dx%d of the canvas %dx%d", s->x, s->y, s->w, s->h, (int)o->width, (int)o->height);
++            said = *s;
++        }
++    }
 +    return s->w >= 64 && s->h >= 64;
 +}
 +
@@ -1083,7 +1117,8 @@ diff -ruN a/src/arch/sdl/video_sdl2.c b/src/arch/sdl/video_sdl2.c
 +    int W, H, w, h, crop;
 +    double cw, ch;
 +    k4510_env();
-+    crop = !k4510_borders && !sdl_menu_state && k4510_vdc_crop(canvas, src);   /* the F12 menu is laid out on the whole canvas */
++    crop = !sdl_menu_state && ((!k4510_borders && k4510_vdc_crop(canvas, src))   /* the F12 menu is laid out on the whole canvas */
++                               || (!k4510_pet_borders && k4510_crtc_crop(canvas, src)));
 +    if (!k4510_left && !k4510_whole && !crop) {
 +        return 0;
 +    }
@@ -1236,7 +1271,7 @@ diff -ruN a/src/arch/sdl/video_sdl2.c b/src/arch/sdl/video_sdl2.c
  void video_canvas_refresh(struct video_canvas_s *canvas,
                            unsigned int xs, unsigned int ys,
                            unsigned int xi, unsigned int yi,
-@@ -805,6 +1044,8 @@
+@@ -805,6 +1079,8 @@
      uint8_t *backup;
      SDL_RendererFlip flip = 0;
      double angle = 0;
@@ -1245,7 +1280,7 @@ diff -ruN a/src/arch/sdl/video_sdl2.c b/src/arch/sdl/video_sdl2.c
  
      /* If the canvas isn't initialized, skip this */
      if ((canvas == NULL) || (canvas->screen == NULL)) {
-@@ -812,6 +1053,9 @@
+@@ -812,6 +1088,9 @@
      }
  
      if (sdl_canvas_is_visible(canvas) == 0) {
@@ -1255,7 +1290,7 @@ diff -ruN a/src/arch/sdl/video_sdl2.c b/src/arch/sdl/video_sdl2.c
          return;
      }
  
-@@ -872,6 +1116,7 @@
+@@ -872,6 +1151,7 @@
      SDL_UpdateTexture(canvas->texture, NULL, canvas->screen->pixels, canvas->screen->pitch);
  
      /* Render. */
@@ -1263,7 +1298,7 @@ diff -ruN a/src/arch/sdl/video_sdl2.c b/src/arch/sdl/video_sdl2.c
      SDL_RenderClear(canvas->container->renderer);
  
      if (canvas->videoconfig->flipx) {
-@@ -890,7 +1135,7 @@
+@@ -890,7 +1170,7 @@
           * render of the menu shows the emu screen behind it!
           */
          SDL_SetTextureBlendMode(canvas->previous_frame_texture, SDL_BLENDMODE_NONE);
@@ -1272,7 +1307,7 @@ diff -ruN a/src/arch/sdl/video_sdl2.c b/src/arch/sdl/video_sdl2.c
          SDL_SetTextureBlendMode(canvas->texture, SDL_BLENDMODE_BLEND);
      } else {
          SDL_SetTextureBlendMode(canvas->texture, SDL_BLENDMODE_NONE);
-@@ -921,10 +1166,16 @@
+@@ -921,10 +1201,16 @@
          DBG(("video_canvas_refresh angle:%f scale:%f", angle, scale));
          SDL_RenderCopyEx(canvas->container->renderer, canvas->texture, NULL, &rect, angle, NULL, flip);
      } else {
@@ -1290,6 +1325,42 @@ diff -ruN a/src/arch/sdl/video_sdl2.c b/src/arch/sdl/video_sdl2.c
  
      /* Swap the textures references so we can easily re-render this frame under the next frame. */
      texture_swap = canvas->previous_frame_texture;
+diff -ruN a/src/crtc/crtc.c b/src/crtc/crtc.c
+--- a/src/crtc/crtc.c
++++ b/src/crtc/crtc.c
+@@ -84,6 +84,14 @@
+ /* the first variable is the initialized flag. We don't want that be uninitialized... */
+ /* FIXME: do not statically initialize anything in this struct, do this somewhere
+           else at runtime */
++/* K4510 (K4510-Personalities): the PET's text area as the raster draws it --
++ * from the line's start (xoffset, with the jitter crtc-draw.c adds) across
++ * the displayed characters, and down the displayed rows -- for xpet's
++ * picture to crop the borders off (src/arch/sdl/video_sdl2.c). */
++struct video_canvas_s;
++int k4510_crtc_area(struct video_canvas_s *canvas, unsigned int *x0, unsigned int *y0,
++                    unsigned int *x1, unsigned int *y1);
++
+ crtc_t crtc = {
+     .initialized =      0,
+ 
+@@ -1288,3 +1296,17 @@
+     }
+     return 0;
+ }
++
++int k4510_crtc_area(struct video_canvas_s *canvas, unsigned int *x0, unsigned int *y0,
++                    unsigned int *x1, unsigned int *y1)
++{
++    int x = crtc.xoffset + crtc.hjitter;
++    if (canvas != crtc.raster.canvas || crtc.rl_visible <= 0 || crtc.framelines <= 0 || x < 0) {
++        return 0;
++    }
++    *x0 = (unsigned int)x;
++    *x1 = *x0 + (unsigned int)(crtc.rl_visible * 8 * crtc.hw_cols);
++    *y0 = (unsigned int)crtc.screen_yoffset;
++    *y1 = *y0 + (unsigned int)crtc.framelines;
++    return 1;
++}
 diff -ruN a/src/log.c b/src/log.c
 --- a/src/log.c
 +++ b/src/log.c

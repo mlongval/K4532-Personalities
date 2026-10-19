@@ -7,6 +7,8 @@
 #                         its other display, live (K4510_C128_DUAL=0: off),
 #                         the VDC's borders cropped off (K4510_VDC_CROP=0: kept)
 # and in src/vdc/vdc.c the area the VDC displayed, for that crop; in
+# src/crtc/crtc.c the PET's text area, so its borders are cropped off too
+# (K4510_PET_BORDERS=on: kept); in
 # src/arch/sdl/menu_video.c the 40/80 key and VDC borders on/off (saved as
 # vdcborders= in K4510_DISPLAY_CFG) in the C128's Video menu; and c64panel.py:
 # the C64's own sidebar (k4510c64.c), drive 8 and its disks, by the mouse.
@@ -25,7 +27,7 @@ def edit(old, new, count=1):
 
 HELPER = r'''
 /* K4510 (K4510-Personalities) ------------------------------------------------------ */
-static int k4510_left = -1, k4510_whole = 0, k4510_borders = 1;
+static int k4510_left = -1, k4510_whole = 0, k4510_borders = 1, k4510_pet_borders = 0;
 
 static void k4510_env(void)
 {
@@ -36,6 +38,8 @@ static void k4510_env(void)
         k4510_whole = e && !strcmp(e, "integer");
         e = getenv("K4510_VDC_BORDERS");
         k4510_borders = !(e && !strcmp(e, "off"));
+        e = getenv("K4510_PET_BORDERS");
+        k4510_pet_borders = e && !strcmp(e, "on");
     }
 }
 
@@ -60,6 +64,38 @@ static int k4510_vdc_crop(struct video_canvas_s *o, SDL_Rect *s)
     s->y = (int)y0 * sy;
     s->w = MIN((int)x1 * sx, (int)o->width) - s->x;
     s->h = MIN((int)y1 * sy, (int)o->height) - s->y;
+    return s->w >= 64 && s->h >= 64;
+}
+
+/* xpet only (crtc.c): the PET's text area last frame, raster coords. */
+extern int k4510_crtc_area(struct video_canvas_s *canvas, unsigned int *x0, unsigned int *y0,
+                           unsigned int *x1, unsigned int *y1) __attribute__((weak));
+
+/* The PET's 40 (or 80) columns by 25 rows and nothing round them (Doc,
+ * 2026-10-18: "get rid of borders please"), in the canvas's pixels; 0 when
+ * the canvas is not the CRTC's. */
+static int k4510_crtc_crop(struct video_canvas_s *o, SDL_Rect *s)
+{
+    unsigned int x0, y0, x1, y1;
+    int sx = o->videoconfig->scalex, sy = o->videoconfig->scaley;
+    if (!k4510_crtc_area || !k4510_crtc_area(o, &x0, &y0, &x1, &y1)) {
+        return 0;
+    }
+    x0 = x0 > o->viewport->first_x ? x0 - o->viewport->first_x : 0;
+    y0 = y0 > o->viewport->first_line ? y0 - o->viewport->first_line : 0;
+    x1 = x1 > o->viewport->first_x ? x1 - o->viewport->first_x : 0;
+    y1 = y1 > o->viewport->first_line ? y1 - o->viewport->first_line : 0;
+    s->x = (int)x0 * sx;
+    s->y = (int)y0 * sy;
+    s->w = MIN((int)x1 * sx, (int)o->width) - s->x;
+    s->h = MIN((int)y1 * sy, (int)o->height) - s->y;
+    {
+        static SDL_Rect said;
+        if (memcmp(&said, s, sizeof said)) {
+            log_message(LOG_DEFAULT, "k4510: the PET's text area %d,%d %dx%d of the canvas %dx%d", s->x, s->y, s->w, s->h, (int)o->width, (int)o->height);
+            said = *s;
+        }
+    }
     return s->w >= 64 && s->h >= 64;
 }
 
@@ -110,7 +146,8 @@ static int k4510_place(struct video_canvas_s *canvas, SDL_Renderer *r, SDL_Rect 
     int W, H, w, h, crop;
     double cw, ch;
     k4510_env();
-    crop = !k4510_borders && !sdl_menu_state && k4510_vdc_crop(canvas, src);   /* the F12 menu is laid out on the whole canvas */
+    crop = !sdl_menu_state && ((!k4510_borders && k4510_vdc_crop(canvas, src))   /* the F12 menu is laid out on the whole canvas */
+                               || (!k4510_pet_borders && k4510_crtc_crop(canvas, src)));
     if (!k4510_left && !k4510_whole && !crop) {
         return 0;
     }
@@ -313,6 +350,35 @@ edit("        if (vdc.row_counter == vdc.regs[7]) {\n            vdc.vsync = 1;\
      "            k4510_y0 = ~0u;\n"
      "            k4510_y1 = 0;\n"
      "            vdc.vsync = 1;\n")
+open(P, "w").write(s)
+
+P = "src/crtc/crtc.c"
+s = open(P).read()
+edit("\ncrtc_t crtc", r'''
+/* K4510 (K4510-Personalities): the PET's text area as the raster draws it --
+ * from the line's start (xoffset, with the jitter crtc-draw.c adds) across
+ * the displayed characters, and down the displayed rows -- for xpet's
+ * picture to crop the borders off (src/arch/sdl/video_sdl2.c). */
+struct video_canvas_s;
+int k4510_crtc_area(struct video_canvas_s *canvas, unsigned int *x0, unsigned int *y0,
+                    unsigned int *x1, unsigned int *y1);
+
+crtc_t crtc''')
+s += r'''
+int k4510_crtc_area(struct video_canvas_s *canvas, unsigned int *x0, unsigned int *y0,
+                    unsigned int *x1, unsigned int *y1)
+{
+    int x = crtc.xoffset + crtc.hjitter;
+    if (canvas != crtc.raster.canvas || crtc.rl_visible <= 0 || crtc.framelines <= 0 || x < 0) {
+        return 0;
+    }
+    *x0 = (unsigned int)x;
+    *x1 = *x0 + (unsigned int)(crtc.rl_visible * 8 * crtc.hw_cols);
+    *y0 = (unsigned int)crtc.screen_yoffset;
+    *y1 = *y0 + (unsigned int)crtc.framelines;
+    return 1;
+}
+'''
 open(P, "w").write(s)
 
 P = "src/arch/sdl/menu_video.c"

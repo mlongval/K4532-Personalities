@@ -3,7 +3,7 @@
 # log -- no pictures: white on dark blue at the first start; the sidebar's
 # GREEN, AMBER, GREY and BLUE change the palette, TOGGLE goes between blue
 # and the last of the others, and ~/personalities/pet/palette keeps the
-# choice for the next start.
+# choice for the next start; and the borders are cropped off.
 #   tools/test-petscreen.sh      (after tools/make-images.sh vice; needs k4510-base-xdo)
 set -e
 HERE=$(cd "$(dirname "$0")/.." && pwd); W=$HERE/work
@@ -60,5 +60,8 @@ start                                                 # the next start: grey, as
 [ "$(colours)" = "$grey" ] || fail "the next start is not grey ($(colours))"
 at 19 10                                              # BLUE
 [ "$(colours)" = "$blue" ] || fail "BLUE ($(colours))"
-grep "k4510c64: the PET" ~/log
+grep "k4510c64: the PET\|k4510c64: the panel" ~/log
+# the borders cropped off (Doc, 2026-10-18): what is drawn is the 40
+# columns, 320 pixels, across and the rows down, of the 384x272 canvas
+grep -q "k4510: the PET.s text area [0-9]*,[0-9]* 320x" ~/log || fail "the PET picture still has its borders"
 echo "test-petscreen: OK (white on blue first, GREEN AMBER GREY BLUE and TOGGLE change it, kept for the next start; blue $blue, amber $amber, grey $grey)"'
