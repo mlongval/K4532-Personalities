@@ -24,7 +24,7 @@ C:Version muimaster.library >>SYS:ver
 IF EXISTS S:Desktop-Scalos
   Run >NIL: SYS:System/RexxMast
   Run >NIL: "Scalos:Prefs/Scalos Prefs"
-  Wait 20
+  Wait 40
   SYS:Rexxc/rx "call open(f,'SYS:ports','W'); call writeln(f,show('P')); call close(f)"
 EndIF
 TAIL
@@ -55,7 +55,7 @@ podman run --rm -v $W/test-amiga:/opt/personalities/amiga:ro,Z -v $W/test-ahome:
     grep -q "^scalos.library" $H/ver && fail "Scalos ran, Workbench was asked for"
     f11
     grep -a "k4510amiga: desktop" ~/a.log; [ -f $H/S/Desktop-Scalos ] || fail "F11 did not choose Scalos"
-    boot 120
+    boot 160; grep -a -i -E "bitplane|planes|depth|AGA|lores|hires|screen mode|shres|BPLCON" ~/a.log | sort | uniq -c | sort -rn | head -12
     cat $H/ver; grep -q "^scalos.library 41" $H/ver || fail "Scalos did not start"
     grep -q "^muimaster.library 19" $H/ver || fail "no muimaster.library (MUI: not assigned?)"
     cat $H/ports 2>/dev/null; grep -q "PREFERENCES" $H/ports 2>/dev/null || fail "Scalos Prefs (MUI) opened no ARexx port (a class missing?)"

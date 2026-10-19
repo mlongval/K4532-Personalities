@@ -31,6 +31,9 @@ cp -r "$F/icandy" "$F/Palette13.prefs" "$F/Pattern.prefs" "$F/Persist.prefs" "$F
 cp -r "$F/English/FileTypes/." "$E/Scalos/FileTypes/"
 cp "$X/env-archive/deficons.prefs" "$E/"
 cp "$X/c/LoadWB" "$H/C/LoadWB.scalos"
+# the Workbench screen in 256 colours, not Workbench 3.1's 4: Scalos's palette
+# and the colour icons need the pens (copied only where none is there)
+mkdir -p "$E/Sys"; python3 "$(dirname "$0")/amiga-screenmode.py" "$E/Sys/screenmode.prefs" 8
 cp "$I/Libs/icon.library" "$H/Libs/icon.library"
 cp "$I/ThirdParty/RemLib/RemLib" "$H/C/RemLib"
 # MUI: the package's drawer less its installer, and the 68k classes
