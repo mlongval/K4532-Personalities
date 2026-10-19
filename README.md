@@ -54,8 +54,13 @@ or .CRT runs at once), EJECT to take the disk out, BROWSE for Dir Browser on
 the SD volume; the wheel scrolls.  On the C128 the screen it is not showing
 (VDC or VIC-II) is along the bottom of the sidebar, the panel above it.
 The **PET** has the same panel in its screen's own two colours, read from
-VICE's palette as it draws, so a palette chosen in F12 (green, amber, white)
-recolours it at once; its drive is whatever Drive8Type is (a 2031 at first; a
+VICE's palette as it draws; its screen is **white on dark blue** at first,
+and the panel's SCREEN row picks GREEN, AMBER, GREY or BLUE, with TOGGLE
+going between blue and the last of the others (the choice is kept in
+`~/personalities/pet/palette`, which run/vice passes after `-model 4032`:
+the model sets the 4032's own palette, so a choice made only in F12 never
+lasted a start; whiteblue.vpl and grey.vpl are in `machine/vice/PET`;
+`tools/test-petscreen.sh`).  Its drive is whatever Drive8Type is (a 2031 at first; a
 .D64 goes in a 2031, a .D80 in an 8050), its keys the graphics keyboard's, and no SD row.
 `K4510_C64_PANEL=0` gives the scene back.  `tools/test-c64panel.sh` clicks
 through it under Xvfb (xdotool) and reads VICE's log.
@@ -78,7 +83,17 @@ Save, or the K4532 hub's Settings form, which writes that same section).
 Topaz 8 taken from the Kickstart (`tools/topaz.py`): the power, floppy and
 hard-drive LEDs, the disk in DF0: with its track, DH0: and DH1:, how the
 touchpad clicks, and the Amiga's keys on the PC's.  It only shows (the mouse
-is the Amiga's).  DH1: is **Work, a 20 MB hardfile** (FFS, made by
+is the Amiga's), but for one key: **F11 switches the desktop** between
+Workbench 3.1 and **Scalos** 41.7 (shown in the panel's Desktop box; it
+takes effect at the next start or reset).  Scalos (the Scalos Team's last
+68k beta) and PeterK's icon.library 51 (with RemLib, so Workbench 3.1 shows
+NewIcons and colour icons) are fetched by `tools/get-scalos.sh` -- Scalos
+from the Internet Archive's copy of its site, whose readme asks it be had
+only from there, so it is never in this repository -- laid out by
+`tools/install-scalos.sh` as its installer would, and copied onto DH0 by
+run/amiga once; the Startup-Sequence runs Scalos's LoadWB (C:LoadWB.scalos)
+while `S:Desktop-Scalos` is there, Workbench's own otherwise.
+`tools/test-amiga-desktop.sh` boots both under Xvfb.  DH1: is **Work, a 20 MB hardfile** (FFS, made by
 `tools/make-amiga-hd.sh` with amitools; copied to the machine only if none is
 there; run/amiga adds it to a configuration written before it).  The
 **touchpad** works as the mouse (`tools/patches/amiberry/touchpad.py`): on

@@ -9,6 +9,8 @@
 #   DH0/        the A1200's hard drive, a directory with Workbench 3.1 on it
 #   Work.hdf    DH1:, Work, a 20 MB hardfile (FFS)
 #   Games/      DH2:, Games, if there: a directory of WHDLoad games
+#   DH0/S/Desktop-Scalos  there: Scalos is the desktop, not Workbench 3.1
+#               (the sidebar's F11 makes and removes it)
 A=/opt/personalities/amiga
 name=$(basename "$0")
 # The placement every personality shares: ~/personalities/display.cfg,
@@ -59,6 +61,23 @@ if [ "$name" = a1200 ] && [ ! -f "$D/.added-rtg" ]; then
     fi
     touch "$D/.added-rtg"
 fi
+# Scalos and icon.library 51 (Doc, 2026-10-18: "Can you install Scalos?"):
+# the image's DH0 tree ($A/dh0, tools/install-scalos.sh) onto DH0 once
+# (.added-scalos), files already there kept; and the Startup-Sequence taught
+# to take icon.library from Libs: (RemLib before SetPatch, or Workbench 3.1's
+# ROM one draws NewIcons as blank boxes) and to start Scalos instead of
+# Workbench while S:Desktop-Scalos is there -- the sidebar's Desktop, F11.
+if [ "$name" = a1200 ] && [ -d "$A/dh0" ] && [ -d "$D/DH0" ] && [ ! -f "$D/.added-scalos" ]; then
+    cp -rn "$A/dh0/." "$D/DH0/" && chmod -R u+w "$D/DH0"
+    F=$D/DH0/S/Startup-Sequence
+    [ -f "$F.before-scalos" ] || cp -p "$F" "$F.before-scalos"
+    grep -q 'RemLib >NIL: icon.library' "$F" || sed -i 's|^C:SetPatch QUIET$|; icon.library 51 (PeterK, from Libs:) in place of the ROM 40.1, for the NewIcons and\n; ColorIcons of the Games drive (K4532, 2026-10-18)\nIf EXISTS LIBS:icon.library\n  C:RemLib >NIL: icon.library\nEndIf\nC:SetPatch QUIET|' "$F"
+    grep -q 'Desktop-Scalos' "$F" || sed -i 's|^C:LoadWB$|; the desktop (K4532, 2026-10-18): Scalos when S:Desktop-Scalos is there\n; (the A1200 sidebar'"'"'s Desktop, F11), Workbench 3.1'"'"'s own otherwise\nIF EXISTS S:Desktop-Scalos\n  IF EXISTS C:LoadWB.scalos\n    C:Assign >NIL: Scalos: SYS:Scalos\n    C:LoadWB.scalos\n  Else\n    C:LoadWB\n  EndIF\nElse\n  C:LoadWB\nEndIF|' "$F"
+    touch "$D/.added-scalos"
+fi
+# the sidebar's Desktop box and its F11, where the Startup-Sequence chooses
+[ "$name" = a1200 ] && [ -f "$D/DH0/C/LoadWB.scalos" ] && grep -q 'Desktop-Scalos' "$D/DH0/S/Startup-Sequence" 2>/dev/null \
+    && export K4510_AMIGA_DESKTOP=$D/DH0/S/Desktop-Scalos
 # Auto-crop (Doc, 2026-10-18: "an empty grey border around it"): the picture
 # is cut to what the Amiga actually shows -- Workbench's 640x512, not the
 # 720x568 of overscan around it in the screen's colour 0 -- and that is what

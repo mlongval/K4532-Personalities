@@ -1,7 +1,15 @@
 diff -ruN a/src/osdep/amiberry.cpp b/src/osdep/amiberry.cpp
 --- a/src/osdep/amiberry.cpp
 +++ b/src/osdep/amiberry.cpp
-@@ -3147,6 +3147,18 @@
+@@ -3070,6 +3070,7 @@
+ 		apply_host_modifier_state(event_scancode, ctrl_state, shift_state, alt_state, win_state);
+ }
+ 
++int k4510amiga_key(const SDL_Event& e);   // K4510: the A1200 sidebar (k4510amiga.c, in sdl_renderer.cpp)
+ static void handle_key_event(const SDL_Event& event)
+ {
+ #ifdef __ANDROID__
+@@ -3147,6 +3148,18 @@
  #endif
  
  #ifndef __ANDROID__
@@ -20,7 +28,7 @@ diff -ruN a/src/osdep/amiberry.cpp b/src/osdep/amiberry.cpp
  static void handle_finger_event(const SDL_Event& event)
  {
  	if (!mouseactive || isfocus() <= 0)
-@@ -3155,31 +3167,37 @@
+@@ -3155,31 +3168,37 @@
  	if (pen_in_proximity && currprefs.input_tablet > 0)
  		return;
  #endif
@@ -83,7 +91,7 @@ diff -ruN a/src/osdep/amiberry.cpp b/src/osdep/amiberry.cpp
  }
  #endif
  
-@@ -3407,21 +3425,22 @@
+@@ -3407,21 +3426,22 @@
  	if (pen_in_proximity && currprefs.input_tablet > 0)
  		return;
  #endif
@@ -120,7 +128,15 @@ diff -ruN a/src/osdep/amiberry.cpp b/src/osdep/amiberry.cpp
  }
  #endif
  
-@@ -4172,6 +4191,9 @@
+@@ -3957,6 +3977,7 @@
+ 
+ 		case SDL_EVENT_KEY_DOWN:
+ 		case SDL_EVENT_KEY_UP:
++			if (k4510amiga_key(event)) break;   // K4510: the A1200 sidebar's F11
+ 			handle_key_event(event);
+ 			break;
+ 
+@@ -4172,6 +4193,9 @@
  		got_event = 1;
  		process_event(event);
  	}
@@ -133,7 +149,7 @@ diff -ruN a/src/osdep/amiberry.cpp b/src/osdep/amiberry.cpp
 diff -ruN a/src/osdep/k4510amiga.c b/src/osdep/k4510amiga.c
 --- a/src/osdep/k4510amiga.c
 +++ b/src/osdep/k4510amiga.c
-@@ -0,0 +1,157 @@
+@@ -0,0 +1,202 @@
 +/* k4510amiga.c -- the A1200's own sidebar (K4532-Personalities, 2026-10-17):
 + * with placement=left the free area beside the picture shows the Amiga
 + * itself instead of a K4532 scene, in the A1200's off-white, lettered in its
@@ -142,12 +158,19 @@ diff -ruN a/src/osdep/k4510amiga.c b/src/osdep/k4510amiga.c
 + *   the LEDs       power, floppy and hard drive, as on the A1200's strip
 + *   DF0:           the disk in the drive, its motor, the head's track
 + *   DH0: DH1:      the hard drives (Workbench; Work, 20 MB)
++ *   DESKTOP        Workbench 3.1 or Scalos, the one the next start (or a
++ *                  reset) brings up: F11 switches it -- the file
++ *                  DH0/S/Desktop-Scalos there or not, which the
++ *                  Startup-Sequence looks for (K4510_AMIGA_DESKTOP, set by
++ *                  run/amiga when Scalos is installed)
 + *   the touchpad   how it clicks (amiberry.cpp's finger handling, below)
 + *   KEYS           the Amiga's keys on the PC's (Amiberry's keyboard.cpp)
 + *
-+ * It only shows: the mouse belongs to the Amiga.  K4510_AMIGA_PANEL=0 gives
-+ * the K4532 scene back.  Included at the end of sdl_renderer.cpp
++ * It only shows -- the mouse belongs to the Amiga -- and takes one key, F11
++ * (amiberry.cpp hands it the key events first, k4510amiga_key).
++ * K4510_AMIGA_PANEL=0 gives the K4532 scene back.  Included at the end of sdl_renderer.cpp
 + * (amiberry/apply.py); k4510_sidebar there calls k4510amiga_draw first. */
++#include <sys/stat.h>
 +#include "gui.h"
 +#include "options.h"
 +
@@ -156,6 +179,13 @@ diff -ruN a/src/osdep/k4510amiga.c b/src/osdep/k4510amiga.c
 +static uint8_t ap_font[256 * 8];
 +static SDL_Texture* ap_tex;
 +static SDL_Renderer* ap_ren;
++static const char* ap_desk;                      /* DH0/S/Desktop-Scalos (K4510_AMIGA_DESKTOP), or none */
++static uint32_t ap_desk_at;                      /* when F11 last switched it */
++static int ap_scalos(void)
++{
++    struct stat st;
++    return ap_desk && stat(ap_desk, &st) == 0;
++}
 +
 +#define AP_BG     0xd9d5c8u   /* the A1200's case */
 +#define AP_SHADE  0xb5b0a2u
@@ -233,6 +263,17 @@ diff -ruN a/src/osdep/k4510amiga.c b/src/osdep/k4510amiga.c
 +    ap_text(1, r + 1, "DH1:", AP_TEXT, AP_BG, 1);
 +    ap_text(6, r + 1, "Work, 20 MB", AP_TEXT, AP_BG, 0);
 +    r += 3;
++    /* the desktop the next start brings up; F11 switches it */
++    if (ap_desk) {
++        int sc = ap_scalos();
++        ap_text(1, r, " Desktop ", AP_TEXT, AP_BG, 1);
++        ap_text(11, r, "F11 switches", AP_DIM, AP_BG, 0);
++        ap_text(2, r + 1, "Workbench 3.1", sc ? AP_DIM : AP_TEXT, AP_BG, !sc);
++        ap_text(17, r + 1, "Scalos", sc ? AP_TEXT : AP_DIM, AP_BG, sc);
++        ap_text(1, r + 2, ap_desk_at && SDL_GetTicks() - ap_desk_at < 8000 ? "from the next reset:" : "at start and reset", AP_DIM, AP_BG, 0);
++        ap_text(1, r + 3, "Ctrl+L.Win+R.Win", AP_DIM, AP_BG, 0);
++        r += 5;
++    }
 +    /* the touchpad */
 +    ap_text(1, r, " Touchpad ", AP_TEXT, AP_BG, 1);
 +    ap_text(1, r + 1, "tap: click", AP_TEXT, AP_BG, 0);
@@ -251,6 +292,24 @@ diff -ruN a/src/osdep/k4510amiga.c b/src/osdep/k4510amiga.c
 +    }
 +}
 +
++/* amiberry.cpp's key events, before the Amiga's: F11 switches the desktop
++ * (1: taken, the Amiga never sees it) */
++int k4510amiga_key(const SDL_Event& e)
++{
++    if (ap_on <= 0 || !ap_desk || e.key.scancode != SDL_SCANCODE_F11) return 0;
++    if (e.type == SDL_EVENT_KEY_DOWN && !e.key.repeat) {
++        if (ap_scalos()) unlink(ap_desk);
++        else {
++            FILE* f = fopen(ap_desk, "w");
++            if (f) { fputs("; Scalos is the desktop while this file is here (the A1200 sidebar's F11)\n", f); fclose(f); }
++        }
++        ap_desk_at = SDL_GetTicks();
++        ap_last = 0;                              /* drawn again at once */
++        write_log("k4510amiga: desktop %s\n", ap_scalos() ? "Scalos" : "Workbench 3.1");
++    }
++    return 1;
++}
++
 +/* the free area right of ax, W x H output pixels: 1 drawn, 0 not ours */
 +static int k4510amiga_draw(SDL_Renderer* r, int ax, int W, int H)
 +{
@@ -260,6 +319,8 @@ diff -ruN a/src/osdep/k4510amiga.c b/src/osdep/k4510amiga.c
 +        FILE* fp = f ? fopen(f, "rb") : nullptr;
 +        ap_on = fp && !(e && !strcmp(e, "0")) && fread(ap_font, 1, sizeof ap_font, fp) == sizeof ap_font;
 +        if (fp) fclose(fp);
++        ap_desk = getenv("K4510_AMIGA_DESKTOP");
++        if (ap_desk && !*ap_desk) ap_desk = nullptr;
 +    }
 +    if (!ap_on || W - ax < 64) return 0;
 +    int aw = W - ax, k = aw / (27 * 8);

@@ -6,7 +6,8 @@
 #   the sidebar           the K4510's scene in that free area
 #                         (libk4510side.so via k4510host.c), or the A1200's
 #                         own (k4510amiga.c: its LEDs, drives, keys)
-# and touchpad.py: a touchpad on the bare console works as the mouse.
+# and touchpad.py: a touchpad on the bare console works as the mouse; and in
+# src/osdep/amiberry.cpp the key events go to the sidebar first (its F11).
 # SDL3 draws a logical presentation through a texture of its own and lays it
 # over the window at present, so the presentation is set aside from our copy
 # until the frame has been presented, and given back after.
@@ -113,3 +114,17 @@ s += "\n// K4510: the A1200's own sidebar\n#include \"k4510amiga.c\"\n"
 open(P, "w").write(s)
 print("amiberry/apply.py: placement, sidebar in")
 exec(open(os.path.join(here, "touchpad.py")).read())
+
+# the key events: the A1200 sidebar's first (k4510amiga_key: F11, the desktop)
+A = "src/osdep/amiberry.cpp"
+a = open(A).read()
+old = "\t\tcase SDL_EVENT_KEY_DOWN:\n\t\tcase SDL_EVENT_KEY_UP:\n\t\t\thandle_key_event(event);\n"
+if a.count(old) != 1:
+    sys.exit("amiberry/apply.py: the key events' case not found in amiberry.cpp")
+a = a.replace(old, "\t\tcase SDL_EVENT_KEY_DOWN:\n\t\tcase SDL_EVENT_KEY_UP:\n"
+                   "\t\t\tif (k4510amiga_key(event)) break;   // K4510: the A1200 sidebar's F11\n"
+                   "\t\t\thandle_key_event(event);\n")
+j = a.index("static void handle_key_event(const SDL_Event& event)")
+a = a[:j] + "int k4510amiga_key(const SDL_Event& e);   // K4510: the A1200 sidebar (k4510amiga.c, in sdl_renderer.cpp)\n" + a[j:]
+open(A, "w").write(a)
+print("amiberry/apply.py: the sidebar's key in")

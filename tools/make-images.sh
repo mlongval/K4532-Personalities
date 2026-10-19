@@ -99,6 +99,12 @@ if [ -f $W/picasso96/Picasso96.lha ]; then
     cp $W/picasso96/Picasso96.readme $Q/
     chmod -R a+rx,u+w $Q; rm -rf $t        # every file executable: Amiberry gives AmigaDOS the e bit from it
 else echo "make-images: no Picasso96 (tools/get-picasso96.sh): the A1200 will have no RTG"; fi
+# Scalos and PeterK's icon.library, laid out as on DH0 in $A/dh0
+# (tools/get-scalos.sh; only in this image, never in the repository); the
+# A1200's run script copies it onto DH0 once
+rm -rf $A/dh0
+if [ -f $W/scalos/ScalosBeta_41.7_68K.lha ]; then "$HERE/tools/install-scalos.sh" $A/dh0 $W/scalos
+else echo "make-images: no Scalos (tools/get-scalos.sh): the A1200 will have Workbench only"; fi
 fi
 
 # --- x16

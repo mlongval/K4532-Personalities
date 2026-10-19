@@ -6,12 +6,19 @@
  *   the LEDs       power, floppy and hard drive, as on the A1200's strip
  *   DF0:           the disk in the drive, its motor, the head's track
  *   DH0: DH1:      the hard drives (Workbench; Work, 20 MB)
+ *   DESKTOP        Workbench 3.1 or Scalos, the one the next start (or a
+ *                  reset) brings up: F11 switches it -- the file
+ *                  DH0/S/Desktop-Scalos there or not, which the
+ *                  Startup-Sequence looks for (K4510_AMIGA_DESKTOP, set by
+ *                  run/amiga when Scalos is installed)
  *   the touchpad   how it clicks (amiberry.cpp's finger handling, below)
  *   KEYS           the Amiga's keys on the PC's (Amiberry's keyboard.cpp)
  *
- * It only shows: the mouse belongs to the Amiga.  K4510_AMIGA_PANEL=0 gives
- * the K4532 scene back.  Included at the end of sdl_renderer.cpp
+ * It only shows -- the mouse belongs to the Amiga -- and takes one key, F11
+ * (amiberry.cpp hands it the key events first, k4510amiga_key).
+ * K4510_AMIGA_PANEL=0 gives the K4532 scene back.  Included at the end of sdl_renderer.cpp
  * (amiberry/apply.py); k4510_sidebar there calls k4510amiga_draw first. */
+#include <sys/stat.h>
 #include "gui.h"
 #include "options.h"
 
@@ -20,6 +27,13 @@ static uint32_t *ap_px, ap_last;
 static uint8_t ap_font[256 * 8];
 static SDL_Texture* ap_tex;
 static SDL_Renderer* ap_ren;
+static const char* ap_desk;                      /* DH0/S/Desktop-Scalos (K4510_AMIGA_DESKTOP), or none */
+static uint32_t ap_desk_at;                      /* when F11 last switched it */
+static int ap_scalos(void)
+{
+    struct stat st;
+    return ap_desk && stat(ap_desk, &st) == 0;
+}
 
 #define AP_BG     0xd9d5c8u   /* the A1200's case */
 #define AP_SHADE  0xb5b0a2u
@@ -97,6 +111,17 @@ static void ap_render(void)
     ap_text(1, r + 1, "DH1:", AP_TEXT, AP_BG, 1);
     ap_text(6, r + 1, "Work, 20 MB", AP_TEXT, AP_BG, 0);
     r += 3;
+    /* the desktop the next start brings up; F11 switches it */
+    if (ap_desk) {
+        int sc = ap_scalos();
+        ap_text(1, r, " Desktop ", AP_TEXT, AP_BG, 1);
+        ap_text(11, r, "F11 switches", AP_DIM, AP_BG, 0);
+        ap_text(2, r + 1, "Workbench 3.1", sc ? AP_DIM : AP_TEXT, AP_BG, !sc);
+        ap_text(17, r + 1, "Scalos", sc ? AP_TEXT : AP_DIM, AP_BG, sc);
+        ap_text(1, r + 2, ap_desk_at && SDL_GetTicks() - ap_desk_at < 8000 ? "from the next reset:" : "at start and reset", AP_DIM, AP_BG, 0);
+        ap_text(1, r + 3, "Ctrl+L.Win+R.Win", AP_DIM, AP_BG, 0);
+        r += 5;
+    }
     /* the touchpad */
     ap_text(1, r, " Touchpad ", AP_TEXT, AP_BG, 1);
     ap_text(1, r + 1, "tap: click", AP_TEXT, AP_BG, 0);
@@ -115,6 +140,24 @@ static void ap_render(void)
     }
 }
 
+/* amiberry.cpp's key events, before the Amiga's: F11 switches the desktop
+ * (1: taken, the Amiga never sees it) */
+int k4510amiga_key(const SDL_Event& e)
+{
+    if (ap_on <= 0 || !ap_desk || e.key.scancode != SDL_SCANCODE_F11) return 0;
+    if (e.type == SDL_EVENT_KEY_DOWN && !e.key.repeat) {
+        if (ap_scalos()) unlink(ap_desk);
+        else {
+            FILE* f = fopen(ap_desk, "w");
+            if (f) { fputs("; Scalos is the desktop while this file is here (the A1200 sidebar's F11)\n", f); fclose(f); }
+        }
+        ap_desk_at = SDL_GetTicks();
+        ap_last = 0;                              /* drawn again at once */
+        write_log("k4510amiga: desktop %s\n", ap_scalos() ? "Scalos" : "Workbench 3.1");
+    }
+    return 1;
+}
+
 /* the free area right of ax, W x H output pixels: 1 drawn, 0 not ours */
 static int k4510amiga_draw(SDL_Renderer* r, int ax, int W, int H)
 {
@@ -124,6 +167,8 @@ static int k4510amiga_draw(SDL_Renderer* r, int ax, int W, int H)
         FILE* fp = f ? fopen(f, "rb") : nullptr;
         ap_on = fp && !(e && !strcmp(e, "0")) && fread(ap_font, 1, sizeof ap_font, fp) == sizeof ap_font;
         if (fp) fclose(fp);
+        ap_desk = getenv("K4510_AMIGA_DESKTOP");
+        if (ap_desk && !*ap_desk) ap_desk = nullptr;
     }
     if (!ap_on || W - ax < 64) return 0;
     int aw = W - ax, k = aw / (27 * 8);
