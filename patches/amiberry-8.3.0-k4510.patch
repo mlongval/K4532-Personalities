@@ -146,6 +146,24 @@ diff -ruN a/src/osdep/amiberry.cpp b/src/osdep/amiberry.cpp
  	drain_pending_touch_neutralization();
  #ifdef __ANDROID__
  	amiberry_android_touch_mouse_tick();
+diff -ruN a/src/osdep/gui/main_window.cpp b/src/osdep/gui/main_window.cpp
+--- a/src/osdep/gui/main_window.cpp
++++ b/src/osdep/gui/main_window.cpp
+@@ -1612,6 +1612,14 @@
+ 	SELECTOR_HEIGHT = 24 * scaling_factor;
+ 	SCROLLBAR_WIDTH = 20 * scaling_factor;
+ 	style.ScaleAllSizes(scaling_factor);
++	// K4510 (K4532-Personalities): the pointer on the bare console, drawn by ImGui at the screen's scale
++	if (const char* k4510_drv = SDL_GetCurrentVideoDriver(); k4510_drv && !strcmp(k4510_drv, "kmsdrm")) {
++		int k4510_w = 0, k4510_h = 0;
++		SDL_GetWindowSizeInPixels(mon->gui_window, &k4510_w, &k4510_h);
++		io.MouseDrawCursor = true;
++		style.MouseCursorScale = k4510_h >= 1000 ? 3.0f : k4510_h >= 700 ? 2.0f : 1.0f;
++		SDL_HideCursor();
++	}
+ 
+ 	// Build font atlas at physical pixel resolution for crisp text on HiDPI displays.
+ 	// On macOS Retina (dpi=2.0): atlas at 30px, FontScaleDpi=0.5 → effective 15px logical
 diff -ruN a/src/osdep/k4510amiga.c b/src/osdep/k4510amiga.c
 --- a/src/osdep/k4510amiga.c
 +++ b/src/osdep/k4510amiga.c
