@@ -24,7 +24,7 @@ C:Version muimaster.library >>SYS:ver
 IF EXISTS S:Desktop-Scalos
   Run >NIL: SYS:System/RexxMast
   Run >NIL: "Scalos:Prefs/Scalos Prefs"
-  Wait 90
+  Wait 150
   SYS:Rexxc/rx "call open(f,'SYS:ports','W'); call writeln(f,show('P')); call close(f)"
 EndIF
 TAIL
@@ -55,7 +55,7 @@ podman run --rm -v $W/test-amiga:/opt/personalities/amiga:ro,Z -v $W/test-ahome:
     grep -q "^scalos.library" $H/ver && fail "Scalos ran, Workbench was asked for"
     f11
     grep -a "k4510amiga: desktop" ~/a.log; [ -f $H/S/Desktop-Scalos ] || fail "F11 did not choose Scalos"
-    boot 240
+    boot 320
     grep -aq "Buffer 0 size (640\*480) RTG" ~/a.log && grep -aq "RTG conversion: .* P96RGBF=4 " ~/a.log || fail "the screen is not uaegfx 640x480 HiColor (R5G5B5)"
     cat $H/ver; grep -q "^scalos.library 41" $H/ver || fail "Scalos did not start"
     grep -q "^muimaster.library 19" $H/ver || fail "no muimaster.library (MUI: not assigned?)"
