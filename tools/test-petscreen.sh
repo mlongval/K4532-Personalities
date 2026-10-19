@@ -62,6 +62,8 @@ at 19 10                                              # BLUE
 [ "$(colours)" = "$blue" ] || fail "BLUE ($(colours))"
 grep "k4510c64: the PET\|k4510c64: the panel" ~/log
 # the borders cropped off (Doc, 2026-10-18): what is drawn is the 40
-# columns, 320 pixels, across and the rows down, of the 384x272 canvas
-grep -q "k4510: the PET.s text area [0-9]*,[0-9]* 320x" ~/log || fail "the PET picture still has its borders"
+# columns, 320 pixels, across and the 25 rows, 200 lines, down (Doc,
+# 2026-10-19: no empty row at the top or below), of the 384x272 canvas
+grep "k4510: the PET.s text area" ~/log | tail -1
+grep "k4510: the PET.s text area" ~/log | tail -1 | grep -q " 320x200 " || fail "the PET picture still has its borders, or empty lines above or below the 25 rows"
 echo "test-petscreen: OK (white on blue first, GREEN AMBER GREY BLUE and TOGGLE change it, kept for the next start; blue $blue, amber $amber, grey $grey)"'

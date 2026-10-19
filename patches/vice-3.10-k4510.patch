@@ -993,7 +993,7 @@ diff -ruN a/src/arch/sdl/video_sdl2.c b/src/arch/sdl/video_sdl2.c
  #include <stdio.h>
  #include "vice_sdl.h"
  
-@@ -796,6 +799,277 @@
+@@ -796,6 +799,280 @@
      return canvas;
  }
  
@@ -1114,11 +1114,11 @@ diff -ruN a/src/arch/sdl/video_sdl2.c b/src/arch/sdl/video_sdl2.c
 + * for the frame and given back after it. */
 +static int k4510_place(struct video_canvas_s *canvas, SDL_Renderer *r, SDL_Rect *d, SDL_Rect *src, int *lw, int *lh)
 +{
-+    int W, H, w, h, crop;
++    int W, H, w, h, crop, pet = 0;
 +    double cw, ch;
 +    k4510_env();
 +    crop = !sdl_menu_state && ((!k4510_borders && k4510_vdc_crop(canvas, src))   /* the F12 menu is laid out on the whole canvas */
-+                               || (!k4510_pet_borders && k4510_crtc_crop(canvas, src)));
++                               || (!k4510_pet_borders && (pet = k4510_crtc_crop(canvas, src))));
 +    if (!k4510_left && !k4510_whole && !crop) {
 +        return 0;
 +    }
@@ -1136,10 +1136,13 @@ diff -ruN a/src/arch/sdl/video_sdl2.c b/src/arch/sdl/video_sdl2.c
 +    SDL_RenderSetLogicalSize(r, 0, 0);
 +    SDL_GetRendererOutputSize(r, &W, &H);
 +    h = H;
-+    if (k4510_whole && H >= (int)ch && (int)ch > 0) {
++    if (k4510_whole && !pet && H >= (int)ch && (int)ch > 0) {   /* the PET's 25 rows stretched to the full height (Doc, 2026-10-19) */
 +        h = H / (int)ch * (int)ch;
 +    }
 +    w = (int)(h * cw / ch);
++    if (pet && k4510_left && w > h * 13 / 10) {
++        w = h * 13 / 10;   /* the 25 rows at full height, a little narrower than square pixels -- */
++    }                      /* about a PET tube's shape -- so the panel beside it stays readable */
 +    if (w > W) {
 +        w = W;
 +        h = (int)(w * ch / cw);
@@ -1271,7 +1274,7 @@ diff -ruN a/src/arch/sdl/video_sdl2.c b/src/arch/sdl/video_sdl2.c
  void video_canvas_refresh(struct video_canvas_s *canvas,
                            unsigned int xs, unsigned int ys,
                            unsigned int xi, unsigned int yi,
-@@ -805,6 +1079,8 @@
+@@ -805,6 +1082,8 @@
      uint8_t *backup;
      SDL_RendererFlip flip = 0;
      double angle = 0;
@@ -1280,7 +1283,7 @@ diff -ruN a/src/arch/sdl/video_sdl2.c b/src/arch/sdl/video_sdl2.c
  
      /* If the canvas isn't initialized, skip this */
      if ((canvas == NULL) || (canvas->screen == NULL)) {
-@@ -812,6 +1088,9 @@
+@@ -812,6 +1091,9 @@
      }
  
      if (sdl_canvas_is_visible(canvas) == 0) {
@@ -1290,7 +1293,7 @@ diff -ruN a/src/arch/sdl/video_sdl2.c b/src/arch/sdl/video_sdl2.c
          return;
      }
  
-@@ -872,6 +1151,7 @@
+@@ -872,6 +1154,7 @@
      SDL_UpdateTexture(canvas->texture, NULL, canvas->screen->pixels, canvas->screen->pitch);
  
      /* Render. */
@@ -1298,7 +1301,7 @@ diff -ruN a/src/arch/sdl/video_sdl2.c b/src/arch/sdl/video_sdl2.c
      SDL_RenderClear(canvas->container->renderer);
  
      if (canvas->videoconfig->flipx) {
-@@ -890,7 +1170,7 @@
+@@ -890,7 +1173,7 @@
           * render of the menu shows the emu screen behind it!
           */
          SDL_SetTextureBlendMode(canvas->previous_frame_texture, SDL_BLENDMODE_NONE);
@@ -1307,7 +1310,7 @@ diff -ruN a/src/arch/sdl/video_sdl2.c b/src/arch/sdl/video_sdl2.c
          SDL_SetTextureBlendMode(canvas->texture, SDL_BLENDMODE_BLEND);
      } else {
          SDL_SetTextureBlendMode(canvas->texture, SDL_BLENDMODE_NONE);
-@@ -921,10 +1201,16 @@
+@@ -921,10 +1204,16 @@
          DBG(("video_canvas_refresh angle:%f scale:%f", angle, scale));
          SDL_RenderCopyEx(canvas->container->renderer, canvas->texture, NULL, &rect, angle, NULL, flip);
      } else {
@@ -1328,7 +1331,7 @@ diff -ruN a/src/arch/sdl/video_sdl2.c b/src/arch/sdl/video_sdl2.c
 diff -ruN a/src/crtc/crtc.c b/src/crtc/crtc.c
 --- a/src/crtc/crtc.c
 +++ b/src/crtc/crtc.c
-@@ -84,6 +84,14 @@
+@@ -84,6 +84,15 @@
  /* the first variable is the initialized flag. We don't want that be uninitialized... */
  /* FIXME: do not statically initialize anything in this struct, do this somewhere
            else at runtime */
@@ -1337,13 +1340,23 @@ diff -ruN a/src/crtc/crtc.c b/src/crtc/crtc.c
 + * the displayed characters, and down the displayed rows -- for xpet's
 + * picture to crop the borders off (src/arch/sdl/video_sdl2.c). */
 +struct video_canvas_s;
++static int k4510_text_bottom, k4510_text_height;   /* the raster line below the text, its lines */
 +int k4510_crtc_area(struct video_canvas_s *canvas, unsigned int *x0, unsigned int *y0,
 +                    unsigned int *x1, unsigned int *y1);
 +
  crtc_t crtc = {
      .initialized =      0,
  
-@@ -1288,3 +1296,17 @@
+@@ -961,6 +970,8 @@
+         /* visible area ends here - try to compute vertical centering */
+         /* FIXME: count actual number of rasterlines */
+         int visible_height = crtc.current_line;
++        k4510_text_bottom = (int)crtc.raster.current_line;   /* K4510: the text's last line, for the crop */
++        k4510_text_height = visible_height;
+ 
+         crtc.screen_yoffset = ((int)crtc.screen_height - visible_height) / 2;
+ 
+@@ -1288,3 +1299,22 @@
      }
      return 0;
  }
@@ -1357,8 +1370,13 @@ diff -ruN a/src/crtc/crtc.c b/src/crtc/crtc.c
 +    }
 +    *x0 = (unsigned int)x;
 +    *x1 = *x0 + (unsigned int)(crtc.rl_visible * 8 * crtc.hw_cols);
-+    *y0 = (unsigned int)crtc.screen_yoffset;
-+    *y1 = *y0 + (unsigned int)crtc.framelines;
++    if (k4510_text_height > 0 && k4510_text_bottom >= k4510_text_height) {
++        *y1 = (unsigned int)k4510_text_bottom;      /* the rows of text only (Doc, 2026-10-19: */
++        *y0 = *y1 - (unsigned int)k4510_text_height; /* "get rid of the empty row at top and the ones at bottom") */
++    } else {
++        *y0 = (unsigned int)crtc.screen_yoffset;
++        *y1 = *y0 + (unsigned int)crtc.framelines;
++    }
 +    return 1;
 +}
 diff -ruN a/src/log.c b/src/log.c

@@ -61,7 +61,8 @@ going between blue and the last of the others (the choice is kept in
 the model sets the 4032's own palette, so a choice made only in F12 never
 lasted a start; whiteblue.vpl and grey.vpl are in `machine/vice/PET`;
 `tools/test-petscreen.sh`).  The PET's picture is its text area only,
-the borders cropped off (`petborders=on` in display.cfg keeps them).  Its drive is whatever Drive8Type is (a 2031 at first; a
+the 25 rows and nothing above or below, stretched to the full height even
+with `scale=integer` and drawn about 13:10, a PET tube's shape, so the panel keeps its size (`petborders=on` in display.cfg keeps the borders).  Its drive is whatever Drive8Type is (a 2031 at first; a
 .D64 goes in a 2031, a .D80 in an 8050), its keys the graphics keyboard's, and no SD row.
 `K4510_C64_PANEL=0` gives the scene back.  `tools/test-c64panel.sh` clicks
 through it under Xvfb (xdotool) and reads VICE's log.

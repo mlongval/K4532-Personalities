@@ -9,10 +9,11 @@
 
 # K4532-Personalities (Doc, 2026-10-18): the PET's screen white on dark
 # blue -- VICE brightens a palette as it draws it, so this shows about
-# the C64's blue (35 28 79)
+# the C64's blue (35 28 79); 2026-10-19 a slightly lighter shade (Doc),
+# shown about 3c32a0
 
 # Background
-24 1C 62
+30 28 84
 
 # Foreground
 FF FF FF

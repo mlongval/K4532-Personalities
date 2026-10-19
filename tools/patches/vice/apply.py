@@ -143,11 +143,11 @@ int k4510_vdc_borders(int toggle)
  * for the frame and given back after it. */
 static int k4510_place(struct video_canvas_s *canvas, SDL_Renderer *r, SDL_Rect *d, SDL_Rect *src, int *lw, int *lh)
 {
-    int W, H, w, h, crop;
+    int W, H, w, h, crop, pet = 0;
     double cw, ch;
     k4510_env();
     crop = !sdl_menu_state && ((!k4510_borders && k4510_vdc_crop(canvas, src))   /* the F12 menu is laid out on the whole canvas */
-                               || (!k4510_pet_borders && k4510_crtc_crop(canvas, src)));
+                               || (!k4510_pet_borders && (pet = k4510_crtc_crop(canvas, src))));
     if (!k4510_left && !k4510_whole && !crop) {
         return 0;
     }
@@ -165,10 +165,13 @@ static int k4510_place(struct video_canvas_s *canvas, SDL_Renderer *r, SDL_Rect 
     SDL_RenderSetLogicalSize(r, 0, 0);
     SDL_GetRendererOutputSize(r, &W, &H);
     h = H;
-    if (k4510_whole && H >= (int)ch && (int)ch > 0) {
+    if (k4510_whole && !pet && H >= (int)ch && (int)ch > 0) {   /* the PET's 25 rows stretched to the full height (Doc, 2026-10-19) */
         h = H / (int)ch * (int)ch;
     }
     w = (int)(h * cw / ch);
+    if (pet && k4510_left && w > h * 13 / 10) {
+        w = h * 13 / 10;   /* the 25 rows at full height, a little narrower than square pixels -- */
+    }                      /* about a PET tube's shape -- so the panel beside it stays readable */
     if (w > W) {
         w = W;
         h = (int)(w * ch / cw);
@@ -360,10 +363,15 @@ edit("\ncrtc_t crtc", r'''
  * the displayed characters, and down the displayed rows -- for xpet's
  * picture to crop the borders off (src/arch/sdl/video_sdl2.c). */
 struct video_canvas_s;
+static int k4510_text_bottom, k4510_text_height;   /* the raster line below the text, its lines */
 int k4510_crtc_area(struct video_canvas_s *canvas, unsigned int *x0, unsigned int *y0,
                     unsigned int *x1, unsigned int *y1);
 
 crtc_t crtc''')
+edit("        int visible_height = crtc.current_line;\n",
+     "        int visible_height = crtc.current_line;\n"
+     "        k4510_text_bottom = (int)crtc.raster.current_line;   /* K4510: the text's last line, for the crop */\n"
+     "        k4510_text_height = visible_height;\n")
 s += r'''
 int k4510_crtc_area(struct video_canvas_s *canvas, unsigned int *x0, unsigned int *y0,
                     unsigned int *x1, unsigned int *y1)
@@ -374,8 +382,13 @@ int k4510_crtc_area(struct video_canvas_s *canvas, unsigned int *x0, unsigned in
     }
     *x0 = (unsigned int)x;
     *x1 = *x0 + (unsigned int)(crtc.rl_visible * 8 * crtc.hw_cols);
-    *y0 = (unsigned int)crtc.screen_yoffset;
-    *y1 = *y0 + (unsigned int)crtc.framelines;
+    if (k4510_text_height > 0 && k4510_text_bottom >= k4510_text_height) {
+        *y1 = (unsigned int)k4510_text_bottom;      /* the rows of text only (Doc, 2026-10-19: */
+        *y0 = *y1 - (unsigned int)k4510_text_height; /* "get rid of the empty row at top and the ones at bottom") */
+    } else {
+        *y0 = (unsigned int)crtc.screen_yoffset;
+        *y1 = *y0 + (unsigned int)crtc.framelines;
+    }
     return 1;
 }
 '''
