@@ -6,8 +6,10 @@
 #   the sidebar           the K4510's scene in that free area
 #                         (libk4510side.so via k4510host.c), or the A1200's
 #                         own (k4510amiga.c: its LEDs, drives, keys)
-# and touchpad.py: a touchpad on the bare console works as the mouse; and in
-# src/osdep/amiberry.cpp the key events go to the sidebar first (its F11).
+# and touchpad.py: a touchpad on the bare console works as the mouse; in
+# src/osdep/amiberry.cpp the key events go to the sidebar first (its F11);
+# and in src/osdep/gui/main_window.cpp the F12 GUI draws its own pointer on
+# the bare console, scaled to the screen.
 # SDL3 draws a logical presentation through a texture of its own and lays it
 # over the window at present, so the presentation is set aside from our copy
 # until the frame has been presented, and given back after.
@@ -128,3 +130,24 @@ j = a.index("static void handle_key_event(const SDL_Event& event)")
 a = a[:j] + "int k4510amiga_key(const SDL_Event& e);   // K4510: the A1200 sidebar (k4510amiga.c, in sdl_renderer.cpp)\n" + a[j:]
 open(A, "w").write(a)
 print("amiberry/apply.py: the sidebar's key in")
+
+# the F12 GUI's pointer on the bare console (Doc, 2026-10-18: "the mouse
+# pointer is much too small"): on KMSDRM SDL's pointer is the display
+# plane's hardware arrow, the same few pixels on any screen; there ImGui
+# draws its own, scaled to the screen's height, and SDL's is hidden
+G = "src/osdep/gui/main_window.cpp"
+g = open(G).read()
+old = "\tstyle.ScaleAllSizes(scaling_factor);\n"
+if g.count(old) != 1:
+    sys.exit("amiberry/apply.py: ScaleAllSizes not found once in main_window.cpp")
+g = g.replace(old, old + """\t// K4510 (K4532-Personalities): the pointer on the bare console, drawn by ImGui at the screen's scale
+\tif (const char* k4510_drv = SDL_GetCurrentVideoDriver(); k4510_drv && !strcmp(k4510_drv, "kmsdrm")) {
+\t\tint k4510_w = 0, k4510_h = 0;
+\t\tSDL_GetWindowSizeInPixels(mon->gui_window, &k4510_w, &k4510_h);
+\t\tio.MouseDrawCursor = true;
+\t\tstyle.MouseCursorScale = k4510_h >= 1000 ? 3.0f : k4510_h >= 700 ? 2.0f : 1.0f;
+\t\tSDL_HideCursor();
+\t}
+""")
+open(G, "w").write(g)
+print("amiberry/apply.py: the GUI's pointer in")

@@ -31,9 +31,22 @@ cp -r "$F/icandy" "$F/Palette13.prefs" "$F/Pattern.prefs" "$F/Persist.prefs" "$F
 cp -r "$F/English/FileTypes/." "$E/Scalos/FileTypes/"
 cp "$X/env-archive/deficons.prefs" "$E/"
 cp "$X/c/LoadWB" "$H/C/LoadWB.scalos"
-# the Workbench screen in 256 colours, not Workbench 3.1's 4: Scalos's palette
-# and the colour icons need the pens (copied only where none is there)
-mkdir -p "$E/Sys"; python3 "$(dirname "$0")/amiga-screenmode.py" "$E/Sys/screenmode.prefs" 8
+# the Workbench screen uaegfx's 640x480 in HiColor (Doc, 2026-10-18: "a
+# 640x480 16 bit color fancy scalos screen"), not Workbench 3.1's 4 colours,
+# too few for Scalos's palette and the colour icons.  HiColor is 15-bit
+# here (R5G5B5, 32768 colours): Picasso96's uaegfx settings have no 16-bit
+# modes, and Picasso96 numbers a resolution's modes by depth -- +0x000
+# 8-bit, +0x100 15-bit, +0x302 32-bit (read from Amiberry's log: 640x480
+# is 0x50031000)
+mkdir -p "$E/Sys"; python3 "$(dirname "$0")/amiga-screenmode.py" "$E/Sys/screenmode.prefs" 15 0x50031100 640 480
+# the desktop picture: ilbm.datatype 44 to read it in 24 bits (shown by
+# Picasso96's own picture.datatype, which make-images.sh puts beside it --
+# Aminet's picture.datatype 43, made for CyberGraphX, stopped Scalos from
+# starting at all), and the theme's own Background (a JPEG, which 3.1
+# cannot read) as a 24-bit ILBM of the screen's size
+d=$t/dt; mkdir -p "$d" && (cd "$d" && lha xq "$Z/dt/ilbmdt44.lha")
+cp "$d/ilbmdt44/ilbm.datatype" "$H/Classes/DataTypes/ilbm.datatype"
+python3 "$(dirname "$0")/amiga-ilbm.py" "$X/Themes/default/Desktop/Background" "$S/Themes/default/Desktop/Background" 640 480
 cp "$I/Libs/icon.library" "$H/Libs/icon.library"
 cp "$I/ThirdParty/RemLib/RemLib" "$H/C/RemLib"
 # MUI: the package's drawer less its installer, and the 68k classes

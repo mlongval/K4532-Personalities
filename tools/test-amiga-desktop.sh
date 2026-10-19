@@ -5,7 +5,7 @@
 #   and teaches its Startup-Sequence both; Workbench 3.1 comes up (no
 #   scalos.library in memory); F11 (the sidebar's Desktop) makes
 #   S:Desktop-Scalos, and the next start runs Scalos (scalos.library 41.7 in
-#   memory), and MUI works: Scalos Prefs (a MUI program, NList and the
+#   memory) on uaegfx's 640x480 HiColor screen, and MUI works: Scalos Prefs (a MUI program, NList and the
 #   other classes) opens its ARexx port; F11 again takes it away.  Version
 #   and ARexx's show('P'), run at the end of the Startup-Sequence (lines this
 #   test adds, S:test-tail), write what they find to SYS:ver and SYS:ports.
@@ -24,7 +24,7 @@ C:Version muimaster.library >>SYS:ver
 IF EXISTS S:Desktop-Scalos
   Run >NIL: SYS:System/RexxMast
   Run >NIL: "Scalos:Prefs/Scalos Prefs"
-  Wait 40
+  Wait 90
   SYS:Rexxc/rx "call open(f,'SYS:ports','W'); call writeln(f,show('P')); call close(f)"
 EndIF
 TAIL
@@ -55,7 +55,8 @@ podman run --rm -v $W/test-amiga:/opt/personalities/amiga:ro,Z -v $W/test-ahome:
     grep -q "^scalos.library" $H/ver && fail "Scalos ran, Workbench was asked for"
     f11
     grep -a "k4510amiga: desktop" ~/a.log; [ -f $H/S/Desktop-Scalos ] || fail "F11 did not choose Scalos"
-    boot 160; grep -a -i -E "bitplane|planes|depth|AGA|lores|hires|screen mode|shres|BPLCON" ~/a.log | sort | uniq -c | sort -rn | head -12
+    boot 240
+    grep -aq "Buffer 0 size (640\*480) RTG" ~/a.log && grep -aq "RTG conversion: .* P96RGBF=4 " ~/a.log || fail "the screen is not uaegfx 640x480 HiColor (R5G5B5)"
     cat $H/ver; grep -q "^scalos.library 41" $H/ver || fail "Scalos did not start"
     grep -q "^muimaster.library 19" $H/ver || fail "no muimaster.library (MUI: not assigned?)"
     cat $H/ports 2>/dev/null; grep -q "PREFERENCES" $H/ports 2>/dev/null || fail "Scalos Prefs (MUI) opened no ARexx port (a class missing?)"

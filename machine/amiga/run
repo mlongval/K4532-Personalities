@@ -53,6 +53,7 @@ sed -i -E 's/^(hardfile2=r[ow],DH[0-9]+:[^,]+,[0-9]+,[0-9]+,[0-9]+,[0-9]+,-?[0-9
 # then writes no gfxcard_size; the hub's form takes the line out), it stays off
 if [ "$name" = a1200 ] && [ -d "$A/p96" ] && [ -d "$D/DH0" ] && [ ! -f "$D/DH0/Libs/Picasso96/rtg.library" ]; then
     cp -r "$A/p96/Libs" "$A/p96/Devs" "$A/p96/Prefs" "$D/DH0/" && chmod -R u+w "$D/DH0/Libs" "$D/DH0/Devs" "$D/DH0/Prefs"
+    [ -d "$A/p96/Classes" ] && cp -r "$A/p96/Classes" "$D/DH0/" && chmod -R u+w "$D/DH0/Classes"
 fi
 if [ "$name" = a1200 ] && [ ! -f "$D/.added-rtg" ]; then
     if ! grep -q "^gfxcard_size=" "$D/$name.uae"; then
@@ -86,6 +87,19 @@ if [ "$name" = a1200 ] && [ -d "$A/dh0/MUI" ] && [ -d "$D/DH0" ] && [ ! -f "$D/.
         '   endif' '   version >nil: exec.library 39' '   if not warn' '      if exists MUI:Docs' '         if exists HELP:dummy ; do not remove' \
         '         endif                ; this entry!' '         assign add HELP: MUI:Docs' '      endif' '   endif' 'endif' ';END MUI' >> "$U"
     touch "$D/.added-mui"
+fi
+# The colourful screen (Doc, 2026-10-18: "a 640x480 16 bit color fancy
+# scalos screen"): uaegfx's 640x480 in HiColor (15-bit), Picasso96's
+# picture.datatype and ilbm.datatype 44 so a desktop picture shows in full colour, and the
+# Scalos theme's picture as a 24-bit ILBM -- over what DH0 has, once
+# (.added-fancy), each one replaced kept as NAME.before-fancy.
+if [ "$name" = a1200 ] && [ -f "$A/dh0/Classes/DataTypes/picture.datatype" ] && [ -d "$D/DH0/Scalos" ] && [ ! -f "$D/.added-fancy" ]; then
+    for f in Classes/DataTypes/picture.datatype Classes/DataTypes/ilbm.datatype Prefs/Env-Archive/Sys/screenmode.prefs \
+             Scalos/Themes/default/Desktop/Background; do
+        [ -f "$D/DH0/$f" ] && [ ! -f "$D/DH0/$f.before-fancy" ] && cp -p "$D/DH0/$f" "$D/DH0/$f.before-fancy"
+        mkdir -p "$(dirname "$D/DH0/$f")" && cp "$A/dh0/$f" "$D/DH0/$f" && chmod u+w,a+rx "$D/DH0/$f"
+    done
+    touch "$D/.added-fancy"
 fi
 # the sidebar's Desktop box and its F11, where the Startup-Sequence chooses
 [ "$name" = a1200 ] && [ -f "$D/DH0/C/LoadWB.scalos" ] && grep -q 'Desktop-Scalos' "$D/DH0/S/Startup-Sequence" 2>/dev/null \

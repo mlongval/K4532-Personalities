@@ -91,6 +91,9 @@ if [ -f $W/picasso96/Picasso96.lha ]; then
         "(DisplayChain=Yes)" "IgnoreMask=Yes" "(SoftSprite=Yes)" "(BigSprite=Yes)" "(BorderBlank=Yes)" \
         "SettingsFile=SYS:Devs/Picasso96Settings" "BoardType=uaegfx"
     cp $P/Devs/Picasso96Settings.64 $Q/Devs/Picasso96Settings
+    # its picture.datatype, which its installer calls "absolutely required"
+    # (deep pictures on its screens; Scalos's desktop picture needs it)
+    mkdir -p $Q/Classes/DataTypes && cp $P/Classes/DataTypes/picture.datatype $Q/Classes/DataTypes/
     # the installer's environment variables, at its defaults
     for v in AmigaVideo=15kHz BlackSwitching=No DirectColorMask=No DoNotSetMMU=No ShowModes=Essential \
              PlanarOnlyDIPFDBUF=No PlanesToFast=No EnableBootVGA=No DisableAmigaBlitter=No Debug=No Experimental=No; do
@@ -104,6 +107,7 @@ else echo "make-images: no Picasso96 (tools/get-picasso96.sh): the A1200 will ha
 # A1200's run script copies it onto DH0 once
 rm -rf $A/dh0
 if [ -f $W/scalos/ScalosBeta_41.7_68K.lha ]; then "$HERE/tools/install-scalos.sh" $A/dh0 $W/scalos
+    [ -f $A/p96/Classes/DataTypes/picture.datatype ] && cp $A/p96/Classes/DataTypes/picture.datatype $A/dh0/Classes/DataTypes/
 else echo "make-images: no Scalos (tools/get-scalos.sh): the A1200 will have Workbench only"; fi
 fi
 

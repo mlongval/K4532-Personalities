@@ -24,4 +24,7 @@ for m in MCC_NList-0.128 MCC_BetterString-11.36 MCC_TextEditor-15.56 MCC_Lamp MC
 done
 curl -fsSL -o "$D/mui/pophotkey_1715.lha" \
     'https://web.archive.org/web/20061230235225id_/http://vapor.meanmachine.ch:80/voyager/pophotkey_1715.lha'
-ls -l "$D" "$D/mui"
+# ilbm.datatype 44 (24-bit ILBMs), for Scalos's desktop picture (Aminet)
+mkdir -p "$D/dt"
+for p in ilbmdt44; do curl -fsSL -o "$D/dt/$p.lha" "https://aminet.net/util/dtype/$p.lha"; done
+ls -l "$D" "$D/mui" "$D/dt"
