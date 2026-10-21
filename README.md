@@ -97,17 +97,25 @@ without it ends the personality.
 (`tools/patches/apple2/k4510apple2.cpp`, built into AppleWin's sa2 by
 `tools/build-apple2.sh`), in the ][+'s beige with the six-stripe apple and
 lettered in its own character ROM: the Disk II with its IN USE light and
-track, what is in drive 1 and drive 2, SCREEN (COLOR, GREEN, AMBER, WHITE;
-TOGGLE between colour and the last monitor), MODEL ( ][, ][+, //E, //E ENH:
-the machine starts again as it), the disks in `~/personalities/apple2` (a
-click puts one in drive 1 and boots it; DOS 3.3's System Master and ProDOS
-2.4.3 to start with, as AppleWin ships them), EJECT, RESET (Ctrl-Reset), QUIT,
-and the keys (Ctrl+F2 Reset, F2 power off and on, the Alt keys the Open and
-Solid Apple, F5 swaps the drives, F9 the next screen, Shift+F2 quits).  The
-choices are kept in `~/personalities/apple2` (screen, model, disk1), which
-run/apple2 passes to sa2; AppleWin's own settings in its applewin.yaml there.
-`tools/test-apple2.sh` clicks through it under Xvfb and reads the log (the
-drive turning: DOS 3.3 and ProDOS boot).  The picture is 4:3 at full height.
+track, what is in drive 1 and drive 2, SCREEN (COLOR, or a GREEN, AMBER,
+WHITE or BLUE -- white on light blue -- monitor; TOGGLE-INVERSE swaps ink and
+paper on any of them), MODEL ( ][, ][+, //E, //E ENH: the machine starts
+again as it), the disks in `~/personalities/apple2` (a click puts one in
+drive 1 and boots it; DOS 3.3's System Master and ProDOS 2.4.3 to start
+with, as AppleWin ships them), EJECT, RESET (Ctrl-Reset), QUIT, and the keys
+(Ctrl+F2 Reset, F2 power off and on, the Alt keys the Open and Solid Apple,
+F5 swaps the drives, F9 the next screen, F12 OPTIONS, Shift+F2 quits).
+F12 opens OPTIONS over the picture: SCANLINES (off, soft, strong), PIXELS
+(sharp or smoothed), DISK (fast or the real speed), SOUND (off, low, mid,
+full), and the SCREEN, INVERSE and MODEL of the sidebar; arrows choose,
+Return starts the machine as the MODEL chosen, F12 or Esc closes.  The
+monitors and scanlines are the sidebar's, not AppleWin's: AppleWin draws
+colour or a white monitor, and each frame is coloured on its way to the
+screen.  The choices are kept in `~/personalities/apple2` (screen, inverse,
+model, disk1, scanlines, pixels, disk, sound); AppleWin's own settings in
+its applewin.yaml there.
+`tools/test-apple2.sh` clicks through it (and OPTIONS) under Xvfb and reads
+the log (the drive turning: DOS 3.3 and ProDOS boot).  The picture is 4:3 at full height.
 (The K4510 had an Apple //e on its Tube, LinApple, until 2026-10-07.)
 
 **Amiga 1200** (sidelined 2026-10-20), placement left: the sidebar is the A1200's own panel

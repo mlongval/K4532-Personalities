@@ -5,7 +5,7 @@
 #                         frame is drawn by k4510a2_present (the picture
 #                         flush left, the sidebar beside it)
 #   sdlframe.cpp          SDL's events go to k4510a2_event first (the mouse
-#                         over the sidebar is the sidebar's)
+#                         over the sidebar is the sidebar's; F12 OPTIONS, F9)
 import os, shutil, sys
 here = os.path.dirname(os.path.abspath(__file__))
 D = "source/frontends/sdl/"
@@ -18,13 +18,13 @@ def edit(path, old, new, count=1):
 P = D + "renderer/sdlrendererframe.cpp"
 edit(P, '#include <iostream>\n', '#include <iostream>\n#include "frontends/sdl/renderer/k4510apple2.cpp"   // K4532-Personalities: the sidebar\n')
 edit(P, "        SDL_UpdateTexture(myTexture.get(), nullptr, myFramebuffer.data(), myPitch);\n",
-     "        SDL_UpdateTexture(myTexture.get(), nullptr, myFramebuffer.data(), myPitch);\n"
-     "        if (k4510a2_on())\n"
+     "        if (k4510a2_on()) // the picture coloured on its way (the monitors, scanlines)\n"
      "        {\n"
-     "            k4510a2_present(myRenderer.get(), myTexture.get(), myRect);\n"
+     "            k4510a2_present(myRenderer.get(), myTexture.get(), myRect, myFramebuffer.data(), myPitch);\n"
      "            SDL_RenderPresent(myRenderer.get());\n"
      "            return;\n"
-     "        }\n")
+     "        }\n"
+     "        SDL_UpdateTexture(myTexture.get(), nullptr, myFramebuffer.data(), myPitch);\n")
 P = D + "sdlframe.cpp"
 edit(P, "    void SDLFrame::ProcessSingleEvent(const SDL_Event &e, bool &quit)\n    {\n",
      "    void SDLFrame::ProcessSingleEvent(const SDL_Event &e, bool &quit)\n    {\n"
