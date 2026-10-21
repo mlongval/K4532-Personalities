@@ -2,9 +2,12 @@
 
 Other machines for the K4532, picked at power-on like a MiSTer/MEGA65 core:
 hold **SPACE** at power-on (the splash says so) and the Chooser lists the
-Commodore 64, 128 and PET, the Amiga 1200 and the Commander X16.
-The chosen machine runs from RAM; quitting it (F12 -> Quit in VICE and
-Amiberry, F12 -> Exit on the X16)
+Commodore 64 (and through its sidebar the 128), the PET, the Apple ][ and
+the Commander X16.  The Amiga 1200 is sidelined (Doc, 2026-10-20): its code
+stays here and its image on p4 in `personalities/sidelined/`, but it is not
+built by default nor listed.
+The chosen machine runs from RAM; quitting it (F12 -> Quit in VICE,
+QUIT or Shift+F2 on the Apple, F12 -> Exit on the X16)
 brings the Chooser back, and the K4532 is one of its choices.  No space:
 the machine used last, one second later.  Software goes in through the
 K4532 hub's Personalities section (files under `~/personalities/<name>`:
@@ -16,7 +19,8 @@ Pi bare-metal glue around VICE 3.3; upstream VICE's SDL UI is the better fit.)
 | Personality | Emulator | Image |
 |---|---|---|
 | c64, c128 (+16 MB REU, SD volume on drive 9), pet (4032, 40 columns) | VICE 3.10, SDL2 UI (x64sc, x128, xpet) | `vice.squashfs` ~5 MB |
-| a1200 (KS 3.1, WB 3.1 on DH0, Work 20 MB on DH1; the A500 went 2026-10-12) | Amiberry 8.3.0, SDL3, no OpenGL | `amiga.squashfs` ~18 MB |
+| apple2 (the enhanced //e at first; ][, ][+, //e; Disk II in slot 6) | AppleWin's sa2 (Linux SDL2 frontend, github.com/audetto/AppleWin), plain renderer | `apple2.squashfs` ~3 MB |
+| a1200, sidelined (KS 3.1, WB 3.1 on DH0, Work 20 MB on DH1; the A500 went 2026-10-12) | Amiberry 8.3.0, SDL3, no OpenGL | `amiga.squashfs` ~18 MB |
 | x16 (Commander X16, ROM r49; drive 8 = `~/personalities/x16`) | x16emu r49, SDL2 | `x16.squashfs` ~0.2 MB |
 
 Quitting back to the K4510: VICE and Amiberry F12 -> Quit; the X16 F12 ->
@@ -83,7 +87,30 @@ are defaults only: run/vice passes each one only when the machine's own
 section of `~/.config/vice/sdl-vicerc` does not set it (F12 -> Settings ->
 Save, or the K4532 hub's Settings form, which writes that same section).
 
-**Amiga 1200**, placement left: the sidebar is the A1200's own panel
+**The C128** is not in the Chooser (Doc, 2026-10-20): the C64's MODEL row
+ends in C128, which quits the C64 and starts the C128 (the C128's ends in
+C64, back again) -- run/vice notes the other machine in
+`~/personalities/switch` and starts it when VICE quits, and VICE quitting
+without it ends the personality.
+
+**Apple ][**, placement left: the sidebar is the Apple's own panel
+(`tools/patches/apple2/k4510apple2.cpp`, built into AppleWin's sa2 by
+`tools/build-apple2.sh`), in the ][+'s beige with the six-stripe apple and
+lettered in its own character ROM: the Disk II with its IN USE light and
+track, what is in drive 1 and drive 2, SCREEN (COLOR, GREEN, AMBER, WHITE;
+TOGGLE between colour and the last monitor), MODEL ( ][, ][+, //E, //E ENH:
+the machine starts again as it), the disks in `~/personalities/apple2` (a
+click puts one in drive 1 and boots it; DOS 3.3's System Master and ProDOS
+2.4.3 to start with, as AppleWin ships them), EJECT, RESET (Ctrl-Reset), QUIT,
+and the keys (Ctrl+F2 Reset, F2 power off and on, the Alt keys the Open and
+Solid Apple, F5 swaps the drives, F9 the next screen, Shift+F2 quits).  The
+choices are kept in `~/personalities/apple2` (screen, model, disk1), which
+run/apple2 passes to sa2; AppleWin's own settings in its applewin.yaml there.
+`tools/test-apple2.sh` clicks through it under Xvfb and reads the log (the
+drive turning: DOS 3.3 and ProDOS boot).  The picture is 4:3 at full height.
+(The K4510 had an Apple //e on its Tube, LinApple, until 2026-10-07.)
+
+**Amiga 1200** (sidelined 2026-10-20), placement left: the sidebar is the A1200's own panel
 (`tools/patches/amiberry/k4510amiga.c`), in its off-white and lettered in
 Topaz 8 taken from the Kickstart (`tools/topaz.py`): the power, floppy and
 hard-drive LEDs, the disk in DF0: with its track, DH0: and DH1:, how the
@@ -153,8 +180,9 @@ VIC-20 and Plus/4 are sidelined (Doc, 2026-10-08).
     podman run --rm -v $PWD/work:/work:Z -v $PWD/tools:/tools:ro personalities-builder sh /tools/build-vice.sh
     podman run --rm -v $PWD/work:/work:Z -v $PWD/tools:/tools:ro personalities-builder sh /tools/build-amiberry.sh
     podman run --rm -v $PWD/work:/work:Z -v $PWD/tools:/tools:ro personalities-builder sh /tools/build-x16.sh
+    podman run --rm -v $PWD/work:/work:Z -v $PWD/tools:/tools:ro personalities-builder sh /tools/build-apple2.sh
     tools/curate-c64.sh; tools/get-robots.sh   # software for ~/personalities
-    tools/make-images.sh             # -> work/out/{personalities,home}  (make-images.sh amiga: that image alone)
+    tools/make-images.sh             # -> work/out/{personalities,home}: vice, x16, apple2 (make-images.sh amiga: the sidelined one alone)
     tools/test-personality.sh c64    # -> work/shots/c64.jpg (Xvfb on the base stand-in)
     tools/export-patches.sh          # -> patches/*.patch: the same changes as plain diffs (patches/README.md)
     tools/deploy-dell.sh             # images to p4, starting files to ~/personalities

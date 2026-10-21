@@ -27,6 +27,9 @@
  *                  4032 or 8032 (80 columns); the C64 a breadbin, a C64C,
  *                  an SX-64 or an NTSC one; the C128 a C128, a C128DCR or
  *                  an NTSC one -- a click switches it and powers it on again;
+ *                  and the C64's C128 (the C128's C64): that machine, VICE
+ *                  quit and the other started by run/vice (the C128 is no
+ *                  longer in the Chooser, Doc 2026-10-20);
  *                  kept in the file model in ~/personalities/<name> as
  *                  -model's word, which run/vice passes
  *   KEYS           the machine's keys on the PC's (-keymap 0, sdl_sym.vkm;
@@ -52,6 +55,7 @@
 #include "drivetypes.h"
 #include "imagecontents.h"
 #include "diskcontents.h"
+#include "archdep_exit.h"
 
 extern uint8_t mem_chargen_rom[] __attribute__((weak));   /* the C64s, the C128 and the PET have it; not every VICE program */
 static int c64p_stride = 8;                      /* a character's bytes in it: the PET's are 16 apart (petrom.c) */
@@ -255,10 +259,10 @@ static const c64p_model_t c64p_models_pet[] = {
     { "2001", "2001", 0 }, { "3032", "3032", 3 }, { "4032", "4032", 6 }, { "8032", "8032", 8 }, { NULL, NULL, 0 }
 };
 static const c64p_model_t c64p_models_c64[] = {   /* C64MODEL_C64_PAL, _C64C_PAL, _C64SX_PAL, _C64_NTSC */
-    { "C64", "c64", 0 }, { "C64C", "c64c", 1 }, { "SX64", "sx64", 7 }, { "NTSC", "ntsc", 3 }, { NULL, NULL, 0 }
+    { "C64", "c64", 0 }, { "C64C", "c64c", 1 }, { "SX64", "sx64", 7 }, { "NTSC", "ntsc", 3 }, { "C128", "c128", -1 }, { NULL, NULL, 0 }
 };
 static const c64p_model_t c64p_models_c128[] = {  /* C128MODEL_C128_PAL, _C128DCR_PAL, _C128_NTSC */
-    { "C128", "c128", 0 }, { "C128DCR", "c128dcr", 2 }, { "NTSC", "ntsc", 3 }, { NULL, NULL, 0 }
+    { "C128", "c128", 0 }, { "C128DCR", "c128dcr", 2 }, { "NTSC", "ntsc", 3 }, { "C64", "c64", -1 }, { NULL, NULL, 0 }
 };
 
 static const c64p_model_t *
@@ -283,6 +287,16 @@ c64p_model_set(int i)
     FILE *f;
     if (!m) return;
     m += i;
+    if (m->model < 0) {                          /* the other machine (the C128 is not in the Chooser, 2026-10-20): */
+        snprintf(path, sizeof path, "%s/../switch", c64p_root);   /* run/vice starts it when this one quits */
+        if ((f = fopen(path, "w"))) {
+            fprintf(f, "%s\n", m->word);
+            fclose(f);
+        }
+        log_message(LOG_DEFAULT, "k4510c64: to the %s", m->word);
+        archdep_vice_exit(0);                    /* VICE's own Quit, without its question */
+        return;
+    }
     if (machine_class == VICE_MACHINE_PET) {
         petmodel_set(m->model);
         if (c64p_pal >= 0) c64p_pal_set(c64p_pal);   /* the model sets its own palette */

@@ -60,8 +60,13 @@ at 5 12 4                                             # MODEL: C64C (Doc, 2026-1
 grep -q "k4510c64: the model: c64c (KERNAL kernal-k4532.bin)" ~/log || fail "MODEL C64C"
 [ "$(cat ~/personalities/c64/model)" = c64c ] || fail "the model not kept"
 grep "k4510c64\|AUTOSTART: Resetting" ~/log
+at 20 12 8                                            # MODEL: C128 -- the C128 (not in the Chooser, 2026-10-20), by run/vice
+grep -q "k4510c64: to the c128" ~/log || fail "MODEL C128"
+pidof x128 >/dev/null || fail "the C128 did not start after the C64"
+pidof x64sc >/dev/null && fail "the C64 still running"
+echo "test-c64panel: the C64 sidebar started the C128"
+pkill -f /tmp/c64 2>/dev/null; kill $(pidof x128) 2>/dev/null; sleep 2
 # the C128: its panel, above the other screen
-pkill -f x64sc 2>/dev/null || kill $(pidof x64sc) 2>/dev/null; sleep 1
 stdbuf -oL /tmp/c128 -sounddev dummy +VICIIfull +VDCfull >~/log128 2>&1 &
 sleep 6; w=$(xdotool search --name VICE | head -1); xdotool windowmove $w 0 0 windowsize $w 1920 1080
 for i in 1 2 3 4 5 6 7 8 9 10 11 12; do grep -q "k4510c64: the panel" ~/log128 && break; sleep 1; done

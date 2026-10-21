@@ -1,0 +1,34 @@
+#!/bin/sh
+# Start the Apple ][ personality (AppleWin's sa2, SDL2): this is run/apple2.
+# Runs from the image k4532-personality mounted at /opt/personalities/apple2.
+#
+# The sidebar (placement=left, tools/patches/apple2): the Disk II, SCREEN
+# (colour or a green, amber or white monitor), MODEL ( ][, ][+, //e, the
+# enhanced //e), the disks in ~/personalities/apple2 (a click boots one),
+# EJECT, RESET, QUIT.  Keys: Ctrl+F2 RESET, F2 power off and on, the Alt keys
+# the Open and Solid Apple, Shift+F2 quits (back to the K4532).
+#
+# Saved things live in ~/personalities/apple2 (the disk, p4): the disks,
+# what the sidebar chose (screen, model, disk1) and AppleWin's own settings
+# (applewin.yaml).
+A=/opt/personalities/apple2
+C=$HOME/personalities/display.cfg
+if [ -f "$C" ]; then
+    v=$(sed -n 's/^placement=//p' "$C"); [ -n "$v" ] && export K4510_PLACEMENT=${K4510_PLACEMENT:-$v}
+fi
+export K4510_PLACEMENT=${K4510_PLACEMENT:-left}
+export LD_LIBRARY_PATH=$A/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}
+D=$HOME/personalities/apple2; mkdir -p "$D"; cd "$D" || exit 1
+word() { sed -n '1{s/[^0-9a-z.]//g;p}' "$D/$1" 2>/dev/null; }
+# the model: AppleWin's numbers (Common.h eApple2Type); the enhanced //e at first
+case "$(word model)" in ii) m=0 ;; iiplus) m=1 ;; iie) m=16 ;; *) m=17 ;; esac
+# the screen (Video.h VideoType_e): colour, or a monitor
+case "$(word screen)" in green) v=7 ;; amber) v=6 ;; white) v=8 ;; *) v=1 ;; esac
+set -- -r "Configuration.Apple2 Type=$m" -r "Configuration.Video Emulation=$v" "$@"
+# the disk in drive 1: the one the sidebar put there, or DOS 3.3 at first
+d1=$(sed -n 1p "$D/disk1" 2>/dev/null)
+[ -f "$d1" ] || d1=$D/DOS33-MASTER.DSK
+[ -f "$d1" ] && set -- --d1 "$d1" "$@"
+# Fullscreen on the KMS display; under X (a test, a desktop) a window.
+[ -n "$DISPLAY" ] || set -- --fullscreen "$@"
+exec $A/bin/sa2 --no-imgui --conf "$D/applewin.yaml" "$@"

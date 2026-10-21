@@ -9,5 +9,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       libasound2-dev libmpg123-dev libflac-dev libcurl4-openssl-dev \
       libserialport-dev libportmidi-dev libenet-dev libzstd-dev libmpeg2-4-dev \
       libsdl3-dev libsdl3-image-dev libsdl3-ttf-dev nlohmann-json3-dev libglew-dev libgl-dev libegl-dev libdrm-dev libgbm-dev \
+      xxd libgles-dev \
       squashfs-tools unadf xvfb xauth imagemagick \
  && rm -rf /var/lib/apt/lists/*

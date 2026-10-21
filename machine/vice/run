@@ -4,7 +4,24 @@
 # Saved things live in ~/personalities/<name> (the disk, p4); VICE's own
 # settings in ~/.config/vice/vicerc (F12 -> Settings -> Save).
 V=/opt/personalities/vice
-name=$(basename "$0")
+name=${K4510_VICE_NAME:-$(basename "$0")}
+# The C64 and the C128 as one personality (Doc, 2026-10-20: the C128 out of
+# the Chooser): the sidebar's MODEL row has the other machine, which writes
+# its name in ~/personalities/switch and quits; this starts that one, and
+# so on, until a machine quits without it.
+if [ -z "$K4510_VICE_NAME" ]; then
+    S=$HOME/personalities/switch; rm -f "$S"
+    exec 3<&0
+    trap 'kill $pid 2>/dev/null; rm -f "$S"' TERM INT HUP   # stopped from outside: the machine too
+    while :; do
+        K4510_VICE_NAME=$name "$V/run/vice" "$@" <&3 3<&- & pid=$!   # the terminal, not /dev/null: SDL's console keyboard
+        wait $pid; rc=$?
+        kill -0 $pid 2>/dev/null && { wait $pid; rc=$?; }     # (a signal ended the first wait)
+        [ -f "$S" ] || exit $rc
+        next=$(cat "$S"); rm -f "$S"
+        case "$next" in c64|c128) name=$next ;; *) exit $rc ;; esac
+    done
+fi
 # The placement every personality shares: ~/personalities/display.cfg,
 # placement=left|centre, scale=fit|integer, sidebar=NAME (the X16's F12
 # menu writes it), vdcborders=on|off (the C128's), petborders=on|off (the

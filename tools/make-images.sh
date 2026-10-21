@@ -5,6 +5,7 @@
 #   work/out/personalities/vice.squashfs   x64sc x128 xpet + ROMs + libs
 #   work/out/personalities/amiga.squashfs  amiberry + 2 Kickstarts + libs
 #   work/out/personalities/x16.squashfs    x16emu + the X16 ROM (r49)
+#   work/out/personalities/apple2.squashfs sa2 (AppleWin, its ROMs inside)
 #   work/out/personalities/*.list          name<TAB>title, one per personality
 #   work/out/home/personalities/<name>/    floppies, the A1200's DH0 -- these
 #                                          go to the disk (p4), never to RAM
@@ -13,7 +14,8 @@
 # (asked of k4510-base-mimic, built from the K4510 repo's packages.list) is
 # copied from the builder into the image's lib/.  Same Debian, same versions.
 #
-#   tools/make-images.sh             every family (and the starting files);
+#   tools/make-images.sh             every family but the sidelined Amiga
+#                                    (and the starting files);
 #   tools/make-images.sh amiga ...   only those images: the others, and
 #                                    work/out/home, stay as they are
 set -e
@@ -31,8 +33,8 @@ if want amiga; then
     for f in "$KS31" "$WB"; do [ -e "$f" ] || { echo "make-images.sh: missing $f (set it in local.cfg)"; exit 1; }; done
 fi
 if [ -z "$FAMS" ]; then
-    FAMS="vice amiga x16"
-    for fam in vice amiga x16; do rm -rf "$IMG/$fam" "$OUT/personalities/$fam".*; done; ALL=1
+    FAMS="vice x16 apple2"                          # the Amiga sidelined (Doc, 2026-10-20): only when asked for
+    for fam in $FAMS; do rm -rf "$IMG/$fam" "$OUT/personalities/$fam".*; done; ALL=1
 else
     for fam in $FAMS; do rm -rf "$IMG/$fam" "$OUT/personalities/$fam".*; done; ALL=
 fi
@@ -119,10 +121,23 @@ cp $S/bin/x16emu $X/bin/; cp $S/rom.bin $X/
 cp "$HERE/machine/x16/run" $X/run/x16; cp "$HERE/machine/x16/list" $X/list
 fi
 
+# --- apple2: AppleWin's sa2 (tools/build-apple2.sh); its first disks go to
+# the disk (p4) with the starting files, never into the image
+if want apple2; then
+P2=$IMG/apple2; S=$W/stage/apple2
+mkdir -p $P2/bin $P2/lib $P2/run
+cp $S/bin/sa2 $P2/bin/
+cp "$HERE/machine/apple2/run" $P2/run/apple2; cp "$HERE/machine/apple2/list" $P2/list
+rm -rf "$OUT/home/personalities/apple2"; mkdir -p "$OUT/home/personalities/apple2"
+cp $S/disks/* "$OUT/home/personalities/apple2/"
+fi
+
 for fam in vice amiga; do
     want $fam || continue
     for n in $(cut -f1 $IMG/$fam/list); do ln -s $fam $IMG/$fam/run/$n; done
 done
+# the C128: not in the Chooser (Doc, 2026-10-20), reached from the C64's sidebar
+want vice && ln -s vice $IMG/vice/run/c128
 
 # strip, bundle the missing libraries (until nothing is missing), squash
 podman run --rm -v "$W:/work:Z" personalities-builder sh -c '
