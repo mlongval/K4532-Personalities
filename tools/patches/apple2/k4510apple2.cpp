@@ -206,11 +206,11 @@ namespace
         unsigned char c = (unsigned char)ch;
         if (c >= 'a' && c <= 'z') c -= 32;            /* the ][+ has no lower case */
         if (c < 0x20 || c > 0x5f) c = '?';
-        const unsigned char *g = csbits_a2[0][0x80 | c];   /* normal video, as AppleWin decoded the ROM */
+        const unsigned char *g = csbits_a2[0][0x80 | c];   /* normal video, as AppleWin decoded the ROM; bit 0 is the leftmost dot */
         if (rev) std::swap(fg, bg);
         for (int j = 0; j < 8; j++)
             for (int i = 0; i < 8; i++)
-                fill(x + i, y + j, 1, 1, i < 7 && (g[j] & (0x40 >> i)) ? fg : bg);
+                fill(x + i, y + j, 1, 1, i < 7 && (g[j] & (1 << i)) ? fg : bg);
     }
     void text(int col, int row, const std::string &s, uint32_t fg, bool rev = false)
     {
